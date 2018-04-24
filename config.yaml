@@ -1,0 +1,18 @@
+schema_version: "1.0"
+k2ws:
+  - brokers: localhost:9092
+    topics: 
+      - test12
+      - test11m
+    group_id: k2ws-test-group
+    auto_offset: earliest
+    auto_commit: true
+    addr: :8888
+    secret: onlyyouknow
+  - brokers: localhost:9092
+    topics: 
+      - test11
+    group_id: k2ws-test-group2
+    auto_offset: latest
+    auto_commit: false
+    addr: :8889
