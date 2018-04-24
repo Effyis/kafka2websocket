@@ -32,6 +32,14 @@ Config file must be in the same directory where executable is located and named 
 
 You can build it statically with `go build -tags static`. Check out [confluentinc/confluent-kafka-go](https://github.com/confluentinc/confluent-kafka-go#static-builds) for more info.
 
+**Build with Docker**
+```sh
+docker build -t k2ws-build .
+docker run --rm -v $PWD:/root/go/src/k2ws k2ws-build
+```
+
+You'll end up with `k2ws` executable that works on Ubuntu and Centos
+
 ### Test in browser
 
 Let's assume application is running on the server `k2ws-test` and serving random topic on port `8888`.
