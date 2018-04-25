@@ -50,6 +50,7 @@ func (kws *K2WS) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			"go.application.rebalance.enable": true,
 		})
 		if err != nil {
+			fmt.Printf("Can't create consumer: %v\n", err)
 			return
 		}
 		defer consumer.Close()
@@ -57,6 +58,7 @@ func (kws *K2WS) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		// Make sure all topics actually exist
 		meta, err := consumer.GetMetadata(nil, true, 5000)
 		if err != nil {
+			fmt.Printf("Can't get metadata: %v\n", err)
 			return
 		}
 		for _, topic := range kws.Topics {
@@ -84,6 +86,7 @@ func (kws *K2WS) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		// Subscribe costumer to the topics
 		err = consumer.SubscribeTopics(kws.Topics, nil)
 		if err != nil {
+			fmt.Printf("Can't subscribe costumer: %v\n", err)
 			return
 		}
 		defer consumer.Unsubscribe()
