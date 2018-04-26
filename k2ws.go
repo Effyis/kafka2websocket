@@ -28,6 +28,7 @@ func (kws *K2WS) Start() error {
 
 func (kws *K2WS) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path == kws.patternTest() {
+		// readTemplate()
 		homeTemplate.Execute(w, "ws://"+r.Host+kws.patternWS())
 	} else if r.URL.Path == kws.patternWS() {
 		// Upgrade to websocket connection
