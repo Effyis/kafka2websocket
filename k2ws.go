@@ -44,11 +44,13 @@ func (kws *K2WS) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		consumer, err := kafka.NewConsumer(&kafka.ConfigMap{
 			"bootstrap.servers":               kws.Brokers,
 			"group.id":                        kws.GroupID,
-			"auto.offset.reset":               kws.AutoOffset,
-			"enable.auto.commit":              kws.AutoCommit,
+			"default.topic.config":            kafka.ConfigMap{"auto.offset.reset": kws.AutoOffset},
+			"auto.commit.enable":              kws.AutoCommit,
 			"session.timeout.ms":              6000,
 			"go.events.channel.enable":        true,
 			"go.application.rebalance.enable": true,
+			// "broker.version.fallback":         "0.8.0",
+			// "debug":                           "protocol",
 		})
 		if err != nil {
 			fmt.Printf("Can't create consumer: %v\n", err)
