@@ -74,7 +74,7 @@ func (k2ws *K2WS) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			"bootstrap.servers":               kcfg.Brokers,
 			"group.id":                        groupID,
 			"default.topic.config":            kafka.ConfigMap{"auto.offset.reset": autoOffset},
-			"auto.commit.enable":              kcfg.AutoCommit,
+			"enable.auto.commit":              kcfg.AutoCommit, // auto.commit.enable doesn't work: https://github.com/edenhill/librdkafka/blob/master/CONFIGURATION.md
 			"session.timeout.ms":              6000,
 			"go.events.channel.enable":        true,
 			"go.application.rebalance.enable": true,
