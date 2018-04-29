@@ -4,33 +4,48 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"github.com/confluentinc/confluent-kafka-go/kafka"
 	"github.com/gorilla/websocket"
 )
 
-// K2WS Kafka to websocket YAML
+// K2WS Kafka to websocket config
 type K2WS struct {
-	Brokers    string   `yaml:"brokers"`
-	Topics     []string `yaml:"topics"`
-	GroupID    string   `yaml:"group_id"`
-	AutoOffset string   `yaml:"auto_offset"`
-	AutoCommit bool     `yaml:"auto_commit"`
-	Addr       string   `yaml:"addr"`
-	Secret     string   `yaml:"secret"`
+	Addr string
+	WS   map[string]*K2WSKafka
+	Test map[string]*string
+}
+
+// K2WSKafka Kafka config
+type K2WSKafka struct {
+	Brokers    string
+	Topics     []string
+	GroupID    string
+	AutoOffset string
+	AutoCommit bool
+}
+
+func parseQueryString(query url.Values, key string, val string) string {
+	if val == "" {
+		if vals, exists := query[key]; exists && len(vals) > 0 {
+			return vals[0]
+		}
+	}
+	return val
 }
 
 // Start start websocket and start consuming from Kafka topic(s)
-func (kws *K2WS) Start() error {
-	return http.ListenAndServe(kws.Addr, kws)
+func (k2ws *K2WS) Start() error {
+	return http.ListenAndServe(k2ws.Addr, k2ws)
 }
 
-func (kws *K2WS) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if r.URL.Path == kws.patternTest() {
+func (k2ws *K2WS) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if wsPath, exists := k2ws.Test[r.URL.Path]; exists {
 		// readTemplate()
-		homeTemplate.Execute(w, "ws://"+r.Host+kws.patternWS())
-	} else if r.URL.Path == kws.patternWS() {
+		homeTemplate.Execute(w, "ws://"+r.Host+*wsPath)
+	} else if kcfg, exists := k2ws.WS[r.URL.Path]; exists {
 		// Upgrade to websocket connection
 		upgrader := websocket.Upgrader{}
 		wscon, err := upgrader.Upgrade(w, r, nil)
@@ -40,12 +55,26 @@ func (kws *K2WS) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		defer wscon.Close()
 
+		// Read kafka params from query string
+		query := r.URL.Query()
+		groupID := parseQueryString(query, "group_id", kcfg.GroupID)
+		autoOffset := parseQueryString(query, "auto_offset", kcfg.AutoOffset)
+		topics := kcfg.Topics
+		if len(topics) == 0 {
+			if t := parseQueryString(query, "topics", ""); t != "" {
+				topics = strings.Split(t, ",")
+			} else {
+				log.Printf("No topic(s)")
+				return
+			}
+		}
+
 		// Instantiate consumer
 		consumer, err := kafka.NewConsumer(&kafka.ConfigMap{
-			"bootstrap.servers":               kws.Brokers,
-			"group.id":                        kws.GroupID,
-			"default.topic.config":            kafka.ConfigMap{"auto.offset.reset": kws.AutoOffset},
-			"auto.commit.enable":              kws.AutoCommit,
+			"bootstrap.servers":               kcfg.Brokers,
+			"group.id":                        groupID,
+			"default.topic.config":            kafka.ConfigMap{"auto.offset.reset": autoOffset},
+			"auto.commit.enable":              kcfg.AutoCommit,
 			"session.timeout.ms":              6000,
 			"go.events.channel.enable":        true,
 			"go.application.rebalance.enable": true,
@@ -64,7 +93,7 @@ func (kws *K2WS) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			fmt.Printf("Can't get metadata: %v\n", err)
 			return
 		}
-		for _, topic := range kws.Topics {
+		for _, topic := range topics {
 			if _, exists := meta.Topics[topic]; !exists {
 				log.Printf("Topic [%s] doesn't exist", topic)
 				return
@@ -86,8 +115,8 @@ func (kws *K2WS) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			}
 		}()
 
-		// Subscribe costumer to the topics
-		err = consumer.SubscribeTopics(kws.Topics, nil)
+		// Subscribe consumer to the topics
+		err = consumer.SubscribeTopics(topics, nil)
 		if err != nil {
 			fmt.Printf("Can't subscribe costumer: %v\n", err)
 			return
@@ -126,18 +155,4 @@ func (kws *K2WS) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	} else {
 		w.WriteHeader(404)
 	}
-}
-
-func (kws *K2WS) patternTest() string {
-	if kws.Secret != "" {
-		return fmt.Sprintf("/%s/test", kws.Secret)
-	}
-	return "/test"
-}
-
-func (kws *K2WS) patternWS() string {
-	if kws.Secret != "" {
-		return fmt.Sprintf("/%s", kws.Secret)
-	}
-	return "/"
 }

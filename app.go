@@ -19,7 +19,7 @@ func main() {
 			if err != nil {
 				log.Fatalln(err)
 			}
-		}(&list[i])
+		}(list[i])
 	}
 
 	var chExit = make(chan os.Signal, 1)
