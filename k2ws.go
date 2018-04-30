@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -20,11 +21,13 @@ type K2WS struct {
 
 // K2WSKafka Kafka config
 type K2WSKafka struct {
-	Brokers    string
-	Topics     []string
-	GroupID    string
-	AutoOffset string
-	AutoCommit bool
+	Brokers        string
+	Topics         []string
+	GroupID        string
+	AutoOffset     string
+	AutoCommit     bool
+	IncludeHeaders bool
+	MessageType    string
 }
 
 func parseQueryString(query url.Values, key string, val string) string {
@@ -138,7 +141,29 @@ func (k2ws *K2WS) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				case kafka.RevokedPartitions:
 					consumer.Unassign()
 				case *kafka.Message:
-					err = wscon.WriteMessage(websocket.TextMessage, e.Value)
+					if kcfg.IncludeHeaders {
+						headers := ""
+						for _, header := range e.Headers {
+							headers += fmt.Sprintf(",\"%s\":\"%s\"", header.Key, string(header.Value))
+						}
+						if len(headers) > 0 {
+							headers = headers[1:]
+						}
+						var msg string
+						if kcfg.MessageType == "json" {
+							msg = fmt.Sprintf("{\"headers\":{%s},\"body\":%s}", headers, string(e.Value))
+						} else {
+							val, err := json.Marshal(string(e.Value))
+							if err == nil {
+								msg = fmt.Sprintf("{\"headers\":{%s},\"body\":%s}", headers, string(val))
+							} else {
+								msg = fmt.Sprintf("{\"headers\":{%s}}", headers)
+							}
+						}
+						err = wscon.WriteMessage(websocket.TextMessage, []byte(msg))
+					} else {
+						err = wscon.WriteMessage(websocket.TextMessage, e.Value)
+					}
 					if err != nil {
 						log.Printf("WebSocket write error: %v (%v)\n", err, e)
 						running = false

@@ -11,15 +11,17 @@ import (
 
 // ConfigK2WS Kafka to websocket YAML
 type ConfigK2WS struct {
-	Brokers    string   `yaml:"brokers"`
-	Topics     []string `yaml:"topics"`
-	GroupID    string   `yaml:"group_id"`
-	AutoOffset string   `yaml:"auto_offset"`
-	AutoCommit bool     `yaml:"auto_commit"`
-	Addr       string   `yaml:"addr"`
-	Secret     string   `yaml:"secret"`
-	TestPath   string   `yaml:"test_path"`
-	WSPath     string   `yaml:"ws_path"`
+	Brokers        string   `yaml:"brokers"`
+	Topics         []string `yaml:"topics"`
+	GroupID        string   `yaml:"group_id"`
+	AutoOffset     string   `yaml:"auto_offset"`
+	AutoCommit     bool     `yaml:"auto_commit"`
+	Addr           string   `yaml:"addr"`
+	Secret         string   `yaml:"secret"`
+	TestPath       string   `yaml:"test_path"`
+	WSPath         string   `yaml:"ws_path"`
+	IncludeHeaders bool     `yaml:"include_headers"`
+	MessageType    string   `yaml:"message_type"`
 }
 
 // Config YAML config file
@@ -52,6 +54,9 @@ func ReadK2WS(filename string) []*K2WS {
 			}
 			k2wsMap[kwsc.Addr] = k2ws
 		}
+		if kwsc.MessageType == "" {
+			kwsc.MessageType = "json"
+		}
 		testPath := kwsc.TestPath
 		wsPath := kwsc.WSPath
 		if testPath == "" && wsPath == "" {
@@ -82,13 +87,18 @@ func ReadK2WS(filename string) []*K2WS {
 		if _, exists := k2ws.Test[wsPath]; exists {
 			panic(fmt.Sprintf("websocket path [%s] already defined as test path", wsPath))
 		}
+		if kwsc.MessageType != "json" && kwsc.MessageType != "text" {
+			panic(fmt.Sprintf("invalid message_type [%s]", kwsc.MessageType))
+		}
 		k2ws.Test[testPath] = &wsPath
 		k2ws.WS[wsPath] = &K2WSKafka{
-			Brokers:    kwsc.Brokers,
-			Topics:     kwsc.Topics,
-			GroupID:    kwsc.GroupID,
-			AutoOffset: kwsc.AutoOffset,
-			AutoCommit: kwsc.AutoCommit,
+			Brokers:        kwsc.Brokers,
+			Topics:         kwsc.Topics,
+			GroupID:        kwsc.GroupID,
+			AutoOffset:     kwsc.AutoOffset,
+			AutoCommit:     kwsc.AutoCommit,
+			IncludeHeaders: kwsc.IncludeHeaders,
+			MessageType:    kwsc.MessageType,
 		}
 	}
 	k2wss := make([]*K2WS, len(k2wsMap))
