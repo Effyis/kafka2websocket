@@ -22,7 +22,6 @@ func readTemplate() {
             var topics = document.getElementById("topics").value;
             var group_id = document.getElementById("group_id").value;
             var auto_offset = document.getElementById("auto_offset").value;
-            debugger
             return "{{.}}?topics=" + topics + "&group_id=" + group_id + "&auto_offset=" + auto_offset;
         }
 
