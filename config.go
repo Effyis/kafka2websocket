@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"os"
 	"strings"
 
 	yaml "gopkg.in/yaml.v2"
@@ -27,6 +28,8 @@ type ConfigK2WS struct {
 // Config YAML config file
 type Config struct {
 	SchemaVersion string       `yaml:"schema_version"`
+	CertFile      string       `yaml:"cert_file"`
+	KeyFile       string       `yaml:"key_file"`
 	ConfigK2WSs   []ConfigK2WS `yaml:"k2ws"`
 }
 
@@ -42,15 +45,25 @@ func ReadK2WS(filename string) []*K2WS {
 	if err != nil {
 		log.Fatalf("Unmarshal: %v", err)
 	}
+	certFile := ""
+	keyFile := ""
+	if _, err := os.Stat(config.CertFile); err == nil {
+		if _, err := os.Stat(config.KeyFile); err == nil {
+			keyFile = config.KeyFile
+			certFile = config.CertFile
+		}
+	}
 	k2wsMap := make(map[string]*K2WS)
 	for _, kwsc := range config.ConfigK2WSs {
 		var k2ws *K2WS
 		var exists bool
 		if k2ws, exists = k2wsMap[kwsc.Addr]; !exists {
 			k2ws = &K2WS{
-				Addr: kwsc.Addr,
-				WS:   make(map[string]*K2WSKafka),
-				Test: make(map[string]*string),
+				Addr:     kwsc.Addr,
+				CertFile: certFile,
+				KeyFile:  keyFile,
+				WS:       make(map[string]*K2WSKafka),
+				Test:     make(map[string]*string),
 			}
 			k2wsMap[kwsc.Addr] = k2ws
 		}

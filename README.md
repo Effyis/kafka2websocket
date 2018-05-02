@@ -9,6 +9,8 @@ Default configuration file is `config.yaml` located in the same directory as exe
 Example:
 ```yaml
 schema_version: "1.0"
+# cert_file: ./certs/mydomain.crt
+# key_file: ./certs/mydomain.key
 k2ws:
   # first Kafka config entry
   - brokers: localhost:9092
@@ -37,6 +39,10 @@ k2ws:
 
 This will start two web-socket servers, one on `ws://localhost:8888/onlyyouknow` and the other one on `ws://localhost:8889/ws`.
 To test them in browser you can open `ws://localhost:8888/onlyyouknow/test` and `ws://localhost:8889/`.
+
+To serve *HTTPS* just set path to certificate file in `cert_file` and private key file in `key_file` ( see comments in the example above ).
+
+##### Kafka config entry options
 
 Property           |Required | Range           |       Default | Description              
 -------------------|:-------:|-----------------|--------------:|--------------------------

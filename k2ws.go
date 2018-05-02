@@ -14,9 +14,11 @@ import (
 
 // K2WS Kafka to websocket config
 type K2WS struct {
-	Addr string
-	WS   map[string]*K2WSKafka
-	Test map[string]*string
+	Addr     string
+	CertFile string
+	KeyFile  string
+	WS       map[string]*K2WSKafka
+	Test     map[string]*string
 }
 
 // K2WSKafka Kafka config
@@ -41,13 +43,20 @@ func parseQueryString(query url.Values, key string, val string) string {
 
 // Start start websocket and start consuming from Kafka topic(s)
 func (k2ws *K2WS) Start() error {
+	if k2ws.CertFile != "" {
+		return http.ListenAndServeTLS(k2ws.Addr, k2ws.CertFile, k2ws.KeyFile, k2ws)
+	}
 	return http.ListenAndServe(k2ws.Addr, k2ws)
 }
 
 func (k2ws *K2WS) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if wsPath, exists := k2ws.Test[r.URL.Path]; exists {
 		// readTemplate()
-		homeTemplate.Execute(w, "ws://"+r.Host+*wsPath)
+		if k2ws.CertFile != "" {
+			homeTemplate.Execute(w, "wss://"+r.Host+*wsPath)
+		} else {
+			homeTemplate.Execute(w, "ws://"+r.Host+*wsPath)
+		}
 	} else if kcfg, exists := k2ws.WS[r.URL.Path]; exists {
 		// Upgrade to websocket connection
 		upgrader := websocket.Upgrader{}
