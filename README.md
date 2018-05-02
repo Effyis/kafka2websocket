@@ -2,7 +2,7 @@
 
 This will create web-socket server that will serve data from a Kafka topic(s).
 
-### Configuration
+## Configuration
 
 Default configuration file is `config.yaml` located in the same directory as executable.
 
@@ -40,9 +40,9 @@ k2ws:
 This will start two web-socket servers, one on `ws://localhost:8888/onlyyouknow` and the other one on `ws://localhost:8889/ws`.
 To test them in browser you can open `ws://localhost:8888/onlyyouknow/test` and `ws://localhost:8889/`.
 
-To serve *HTTPS* just set path to certificate file in `cert_file` and private key file in `key_file` ( see comments in the example above ).
+To serve *HTTPS* just set path to certificate file in `cert_file` and private key file in `key_file` ( see comments in the example above ). If you're serving *HTTPS*, clients should use `wss://` instead of `ws://` and of course `https://` instead of `http://`. Also you would normally use port `443`.
 
-##### Kafka config entry options
+### Kafka config entry options
 
 Property           |Required | Range           |       Default | Description              
 -------------------|:-------:|-----------------|--------------:|--------------------------
@@ -62,11 +62,13 @@ When `topics`, `group_id` and/or `auto_offset` are omitted in configuration, the
 
 You can serve more then one Kafka config entry on the same port as long as they all have unique websocket and test endpoints.
 
+## Build
+
 **This project has `librdkafka` dependency.**
 
 You can build it statically with `go build -tags static`. Check out [confluentinc/confluent-kafka-go](https://github.com/confluentinc/confluent-kafka-go#static-builds) for more info.
 
-**Build with Docker**
+### Build with Docker
 ```sh
 docker build -t k2ws-build .
 docker run --rm -v $PWD:/root/go/src/k2ws k2ws-build
@@ -74,7 +76,40 @@ docker run --rm -v $PWD:/root/go/src/k2ws k2ws-build
 
 You'll end up with `k2ws` executable that works on Ubuntu and Centos
 
-### Test in browser
+### Build for Windows
+* get and start `cygwin64` installation from https://www.cygwin.com/setup-x86_64.exe
+  * select install from Internet
+  * select `C:\cygwin64` as root directory
+  * select `muug.ca` domain
+  * view -> full
+  * install `x86_64-w64-mingw32-gcc` and `pkg-config`
+    * click on the icon left from *Skip* ( keep clicking until you figure the latest version )
+  * optionally put `setup-x86_64.exe` in `c:\cygwin64\` for convenience so that you can install more libs later if needed
+* add `c:\cygwin64\` to PATH
+* open your project directory in command prompt
+* get `nuget` from https://dist.nuget.org/win-x86-commandline/latest/nuget.exe
+* run `nuget install librdkafka.redist -Version 0.11.4` ( this is currently the latest version )
+* this will download `rdkafka` into new `librdkafka.redist.0.11.4` directory
+* copy `.\librdkafka.redist.0.11.4\build\native\include\` into `c:\cygwin64\usr\include\`
+* copy `.\librdkafka.redist.0.11.4\build\native\lib\win7\x64\win7-x64-Release\v120\librdkafka.lib` into `c:\cygwin64\lib\librdkafka.a` (notice `.lib` is renamed to `.a`)
+* create file `rdkafka.pc` in the project's root directory with following content:
+```
+prefix=c:/
+libdir=c:/cygwin64/lib/
+includedir=c:/cygwin64/usr/include
+
+Name: librdkafka
+Description: The Apache Kafka C/C++ library
+Version: 0.11.4
+Cflags: -I${includedir}
+Libs: -L${libdir} -lrdkafka
+Libs.private: -lssl -lcrypto -lcrypto -lz -ldl -lpthread -lrt
+```
+* run `set CC=x86_64-w64-mingw32-gcc` (this will allow `cgo` to use `x86_64-w64-mingw32-gcc` instead of `gcc` - you can make sure it worked with `go env CC`)
+* run `go build`, that will create executable
+* deliver `librdkafka.dll`, `msvcr120.dll` and `zlib.dll` from `.\librdkafka.redist.0.11.4\runtimes\win7-x64\native\` alongside with executable
+
+## Test in browser
 
 Let's assume application is running on the server `k2ws-test` and serving random topic on port `8888`.
 You just need to visit `http://k2ws-test:8888/test`.
