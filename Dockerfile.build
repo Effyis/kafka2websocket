@@ -10,15 +10,21 @@ RUN cd /tmp && \
     tar -C /usr/local -xzf go1.10.1.linux-amd64.tar.gz && \
     git clone https://github.com/edenhill/librdkafka.git && \
     cd /tmp/librdkafka && \
+    git checkout 7478b5e && \
     ./configure && \
     make && \
     make install
 
-COPY app.go config.go html-template.go k2ws.go /root/go/src/k2ws/
+# copy source files and private repo dep
+COPY ./k2ws/ /root/go/src/k2ws/
+COPY ./vendor/ /root/go/src/k2ws/vendor/
 
 ENV PATH=$PATH:/usr/local/go/bin
 ENV PKG_CONFIG_PATH=/usr/local/lib/pkgconfig
 
-CMD cd /root/go/src/k2ws/ && \
+RUN cd /root/go/src/k2ws/ && \
     go get ./... && \
-    go build -tags static
+    go build -tags static && \
+    cp k2ws /usr/bin/k2ws
+
+CMD cp /usr/bin/k2ws /build/

@@ -68,13 +68,24 @@ You can serve more then one Kafka config entry on the same port as long as they 
 
 You can build it statically with `go build -tags static`. Check out [confluentinc/confluent-kafka-go](https://github.com/confluentinc/confluent-kafka-go#static-builds) for more info.
 
-### Build with Docker
+### Build with Docker (Linux)
 ```sh
-docker build -t k2ws-build .
-docker run --rm -v $PWD:/root/go/src/k2ws k2ws-build
+docker build -f Dockerfile.build -t k2ws-build .
+docker run --rm -v $PWD/build:/build k2ws-build
 ```
 
-You'll end up with `k2ws` executable that works on Ubuntu and Centos
+You'll end up with `./build/k2ws` executable that works on Ubuntu and Centos.
+
+### Build and run with Docker
+**Build**
+```sh
+docker build -f Dockerfile.k2ws -t k2ws .
+```
+
+**Run**
+```sh
+docker run -d --name=k2ws --net=host -v _PATH_TO_CONFIG_:/config.yaml k2ws
+```
 
 ### Build for Windows
 * get and start `cygwin64` installation from https://www.cygwin.com/setup-x86_64.exe
@@ -108,8 +119,3 @@ Libs.private: -lssl -lcrypto -lcrypto -lz -ldl -lpthread -lrt
 * run `set CC=x86_64-w64-mingw32-gcc` (this will allow `cgo` to use `x86_64-w64-mingw32-gcc` instead of `gcc` - you can make sure it worked with `go env CC`)
 * run `go build`, that will create executable
 * deliver `librdkafka.dll`, `msvcr120.dll` and `zlib.dll` from `.\librdkafka.redist.0.11.4\runtimes\win7-x64\native\` alongside with executable
-
-## Test in browser
-
-Let's assume application is running on the server `k2ws-test` and serving random topic on port `8888`.
-You just need to visit `http://k2ws-test:8888/test`.
