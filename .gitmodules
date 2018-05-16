@@ -1,0 +1,9 @@
+[submodule "vendor/github.com/confluentinc/confluent-kafka-go"]
+	path = vendor/github.com/confluentinc/confluent-kafka-go
+	url = https://github.com/confluentinc/confluent-kafka-go
+[submodule "vendor/github.com/gorilla/websocket"]
+	path = vendor/github.com/gorilla/websocket
+	url = https://github.com/gorilla/websocket
+[submodule "vendor/gopkg.in/yaml.v2"]
+	path = vendor/gopkg.in/yaml.v2
+	url = https://gopkg.in/yaml.v2
