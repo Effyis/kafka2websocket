@@ -14,22 +14,19 @@ import (
 
 // K2WS Kafka to websocket config
 type K2WS struct {
-	Addr     string
-	CertFile string
-	KeyFile  string
-	WS       map[string]*K2WSKafka
-	Test     map[string]*string
+	Address     string
+	TLSCertFile string
+	TLSKeyFile  string
+	WebSockets  map[string]*K2WSKafka
+	TestUIs     map[string]*string
 }
 
 // K2WSKafka Kafka config
 type K2WSKafka struct {
-	Brokers        string
-	Topics         []string
-	GroupID        string
-	AutoOffset     string
-	AutoCommit     bool
-	IncludeHeaders bool
-	MessageType    string
+	KafkaConsumerConfig kafka.ConfigMap
+	KafkaTopics         []string
+	IncludeHeaders      bool
+	MessageType         string
 }
 
 func parseQueryString(query url.Values, key string, val string) string {
@@ -43,21 +40,21 @@ func parseQueryString(query url.Values, key string, val string) string {
 
 // Start start websocket and start consuming from Kafka topic(s)
 func (k2ws *K2WS) Start() error {
-	if k2ws.CertFile != "" {
-		return http.ListenAndServeTLS(k2ws.Addr, k2ws.CertFile, k2ws.KeyFile, k2ws)
+	if k2ws.TLSCertFile != "" {
+		return http.ListenAndServeTLS(k2ws.Address, k2ws.TLSCertFile, k2ws.TLSKeyFile, k2ws)
 	}
-	return http.ListenAndServe(k2ws.Addr, k2ws)
+	return http.ListenAndServe(k2ws.Address, k2ws)
 }
 
 func (k2ws *K2WS) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if wsPath, exists := k2ws.Test[r.URL.Path]; exists {
+	if wsPath, exists := k2ws.TestUIs[r.URL.Path]; exists {
 		// readTemplate()
-		if k2ws.CertFile != "" {
+		if k2ws.TLSCertFile != "" {
 			homeTemplate.Execute(w, "wss://"+r.Host+*wsPath)
 		} else {
 			homeTemplate.Execute(w, "ws://"+r.Host+*wsPath)
 		}
-	} else if kcfg, exists := k2ws.WS[r.URL.Path]; exists {
+	} else if kcfg, exists := k2ws.WebSockets[r.URL.Path]; exists {
 		// Upgrade to websocket connection
 		upgrader := websocket.Upgrader{}
 		wscon, err := upgrader.Upgrade(w, r, nil)
@@ -69,9 +66,19 @@ func (k2ws *K2WS) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 		// Read kafka params from query string
 		query := r.URL.Query()
-		groupID := parseQueryString(query, "group_id", kcfg.GroupID)
-		autoOffset := parseQueryString(query, "auto_offset", kcfg.AutoOffset)
-		topics := kcfg.Topics
+		config := kcfg.KafkaConsumerConfig
+		// config["debug"] = "protocol"
+		// config["broker.version.fallback"] = "0.8.0"
+		config["session.timeout.ms"] = 6000
+		config["go.events.channel.enable"] = true
+		config["go.application.rebalance.enable"] = true
+		if config["group.id"] == nil {
+			config["group.id"] = parseQueryString(query, "group.id", "")
+		}
+		if config["auto.offset.reset"] == nil {
+			config["auto.offset.reset"] = parseQueryString(query, "auto.offset.reset", "")
+		}
+		topics := kcfg.KafkaTopics
 		if len(topics) == 0 {
 			if t := parseQueryString(query, "topics", ""); t != "" {
 				topics = strings.Split(t, ",")
@@ -82,17 +89,7 @@ func (k2ws *K2WS) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// Instantiate consumer
-		consumer, err := kafka.NewConsumer(&kafka.ConfigMap{
-			"bootstrap.servers":               kcfg.Brokers,
-			"group.id":                        groupID,
-			"default.topic.config":            kafka.ConfigMap{"auto.offset.reset": autoOffset},
-			"enable.auto.commit":              kcfg.AutoCommit, // auto.commit.enable doesn't work: https://github.com/edenhill/librdkafka/blob/master/CONFIGURATION.md
-			"session.timeout.ms":              6000,
-			"go.events.channel.enable":        true,
-			"go.application.rebalance.enable": true,
-			// "broker.version.fallback":         "0.8.0",
-			// "debug":                           "protocol",
-		})
+		consumer, err := kafka.NewConsumer(&config)
 		if err != nil {
 			fmt.Printf("Can't create consumer: %v\n", err)
 			return

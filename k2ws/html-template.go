@@ -20,9 +20,9 @@ func readTemplate() {
 
         function $f_wsURL() {
             var topics = document.getElementById("topics").value;
-            var group_id = document.getElementById("group_id").value;
+            var group_id = document.getElementById("group.id").value;
             var auto_offset = document.getElementById("auto_offset").value;
-            return "{{.}}?topics=" + topics + "&group_id=" + group_id + "&auto_offset=" + auto_offset;
+            return "{{.}}?topics=" + topics + "&group.id=" + group_id + "&auto_offset=" + auto_offset;
         }
 
         window.addEventListener("load", function (evt) {
@@ -204,7 +204,7 @@ func readTemplate() {
                     <button onclick="document.getElementById('kafka').style.display = (document.getElementById('kafka').style.display == 'none') ? 'inline' : 'none'; return false">...</button>
                     <span id="kafka" style="display: none">
                         <input id="topics" placeholder="topic1,topic2,topic3" type="text"></input>
-                        <input id="group_id" placeholder="group id" type="text"></input>
+                        <input id="group.id" placeholder="group id" type="text"></input>
                         <select id="auto_offset">
                             <option value="earliest">earliest</option>
                             <option value="latest" selected="selected">latest</option>

@@ -7,30 +7,29 @@ import (
 	"os"
 	"strings"
 
+	"github.com/confluentinc/confluent-kafka-go/kafka"
+
 	yaml "gopkg.in/yaml.v2"
 )
 
 // ConfigK2WS Kafka to websocket YAML
 type ConfigK2WS struct {
-	Brokers        string   `yaml:"brokers"`
-	Topics         []string `yaml:"topics"`
-	GroupID        string   `yaml:"group_id"`
-	AutoOffset     string   `yaml:"auto_offset"`
-	AutoCommit     bool     `yaml:"auto_commit"`
-	Addr           string   `yaml:"addr"`
-	Secret         string   `yaml:"secret"`
-	TestPath       string   `yaml:"test_path"`
-	WSPath         string   `yaml:"ws_path"`
-	IncludeHeaders bool     `yaml:"include_headers"`
-	MessageType    string   `yaml:"message_type"`
+	KafkaConsumerConfig kafka.ConfigMap `yaml:"kafka.consumer.config"`
+	KafkaTopics         []string        `yaml:"kafka.topics"`
+	Address             string          `yaml:"address"`
+	EndpointPrefix      string          `yaml:"endpoint.prefix"`
+	EndpointTest        string          `yaml:"endpoint.test"`
+	EndpointWS          string          `yaml:"endpoint.websocket"`
+	IncludeHeaders      bool            `yaml:"include.headers"`
+	MessageType         string          `yaml:"message.type"`
 }
 
 // Config YAML config file
 type Config struct {
-	SchemaVersion string       `yaml:"schema_version"`
-	CertFile      string       `yaml:"cert_file"`
-	KeyFile       string       `yaml:"key_file"`
-	ConfigK2WSs   []ConfigK2WS `yaml:"k2ws"`
+	SchemaVersion string       `yaml:"schema.version"`
+	TLSCertFile   string       `yaml:"tls.cert.file"`
+	TLSKeyFile    string       `yaml:"tls.key.file"`
+	ConfigK2WSs   []ConfigK2WS `yaml:"kafka.to.websocket"`
 }
 
 // ReadK2WS read config file and returns collection of K2WS
@@ -47,71 +46,71 @@ func ReadK2WS(filename string) []*K2WS {
 	}
 	certFile := ""
 	keyFile := ""
-	if _, err := os.Stat(config.CertFile); err == nil {
-		if _, err := os.Stat(config.KeyFile); err == nil {
-			keyFile = config.KeyFile
-			certFile = config.CertFile
+	if _, err := os.Stat(config.TLSCertFile); err == nil {
+		if _, err := os.Stat(config.TLSKeyFile); err == nil {
+			keyFile = config.TLSKeyFile
+			certFile = config.TLSCertFile
 		}
 	}
 	k2wsMap := make(map[string]*K2WS)
 	for _, kwsc := range config.ConfigK2WSs {
 		var k2ws *K2WS
 		var exists bool
-		if k2ws, exists = k2wsMap[kwsc.Addr]; !exists {
+		if k2ws, exists = k2wsMap[kwsc.Address]; !exists {
 			k2ws = &K2WS{
-				Addr:     kwsc.Addr,
-				CertFile: certFile,
-				KeyFile:  keyFile,
-				WS:       make(map[string]*K2WSKafka),
-				Test:     make(map[string]*string),
+				Address:     kwsc.Address,
+				TLSCertFile: certFile,
+				TLSKeyFile:  keyFile,
+				WebSockets:  make(map[string]*K2WSKafka),
+				TestUIs:     make(map[string]*string),
 			}
-			k2wsMap[kwsc.Addr] = k2ws
+			k2wsMap[kwsc.Address] = k2ws
 		}
 		if kwsc.MessageType == "" {
 			kwsc.MessageType = "json"
 		}
-		testPath := kwsc.TestPath
-		wsPath := kwsc.WSPath
+		testPath := kwsc.EndpointTest
+		wsPath := kwsc.EndpointWS
 		if testPath == "" && wsPath == "" {
 			testPath = "test"
 		}
-		if kwsc.Secret != "" {
-			testPath = kwsc.Secret + "/" + testPath
-			wsPath = kwsc.Secret + "/" + wsPath
+		if kwsc.EndpointPrefix != "" {
+			testPath = kwsc.EndpointPrefix + "/" + testPath
+			wsPath = kwsc.EndpointPrefix + "/" + wsPath
 		}
 		testPath = "/" + strings.TrimRight(testPath, "/")
 		wsPath = "/" + strings.TrimRight(wsPath, "/")
 
 		if testPath == wsPath {
-			panic(fmt.Sprintf("test_path and ws_path can't be same [%s]", kwsc.TestPath))
+			panic(fmt.Sprintf("test path and websocket path can't be same [%s]", kwsc.EndpointTest))
 		}
-		if kwsc.Brokers == "" {
-			panic(fmt.Sprintf("brokers must be defined, address [%s]", kwsc.Addr))
+		if kwsc.KafkaConsumerConfig["metadata.broker.list"] == "" {
+			panic(fmt.Sprintf("metadata.broker.list must be defined, address [%s]", kwsc.Address))
 		}
-		if _, exists := k2ws.Test[testPath]; exists {
+		if kwsc.KafkaConsumerConfig["group.id"] == "" {
+			panic(fmt.Sprintf("group.id must be defined, address [%s]", kwsc.Address))
+		}
+		if _, exists := k2ws.TestUIs[testPath]; exists {
 			panic(fmt.Sprintf("test path [%s] already defined", testPath))
 		}
-		if _, exists := k2ws.WS[testPath]; exists {
+		if _, exists := k2ws.WebSockets[testPath]; exists {
 			panic(fmt.Sprintf("test path [%s] already defined as websocket path", testPath))
 		}
-		if _, exists := k2ws.WS[wsPath]; exists {
+		if _, exists := k2ws.WebSockets[wsPath]; exists {
 			panic(fmt.Sprintf("websocket path [%s] already defined", wsPath))
 		}
-		if _, exists := k2ws.Test[wsPath]; exists {
+		if _, exists := k2ws.TestUIs[wsPath]; exists {
 			panic(fmt.Sprintf("websocket path [%s] already defined as test path", wsPath))
 		}
 		if kwsc.MessageType != "json" && kwsc.MessageType != "text" {
-			panic(fmt.Sprintf("invalid message_type [%s]", kwsc.MessageType))
+			panic(fmt.Sprintf("invalid message.type [%s]", kwsc.MessageType))
 		}
-		k2ws.Test[testPath] = &wsPath
-		k2ws.WS[wsPath] = &K2WSKafka{
-			Brokers:        kwsc.Brokers,
-			Topics:         kwsc.Topics,
-			GroupID:        kwsc.GroupID,
-			AutoOffset:     kwsc.AutoOffset,
-			AutoCommit:     kwsc.AutoCommit,
-			IncludeHeaders: kwsc.IncludeHeaders,
-			MessageType:    kwsc.MessageType,
+		k2ws.TestUIs[testPath] = &wsPath
+		k2ws.WebSockets[wsPath] = &K2WSKafka{
+			KafkaConsumerConfig: kwsc.KafkaConsumerConfig,
+			KafkaTopics:         kwsc.KafkaTopics,
+			IncludeHeaders:      kwsc.IncludeHeaders,
+			MessageType:         kwsc.MessageType,
 		}
 	}
 	k2wss := make([]*K2WS, len(k2wsMap))

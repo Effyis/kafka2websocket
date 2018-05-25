@@ -1,18 +1,27 @@
-schema_version: "1.0"
-k2ws:
-  - brokers: localhost:9092
-    topics: 
-      - test12
-      - test11m
-    group_id: k2ws-test-group
-    auto_offset: earliest
-    auto_commit: true
-    addr: :8888
-    secret: onlyyouknow
-  - brokers: localhost:9092
-    topics: 
-      - test11
-    group_id: k2ws-test-group2
-    auto_offset: latest
-    auto_commit: false
-    addr: :8889
+schema.version: "1.0"
+# tls.cert.file: ./certs/mydomain.crt
+# tls.key.file: ./certs/mydomain.key
+kafka.to.websocket:
+  # first Kafka config entry
+  - kafka.consumer.config:
+      metadata.broker.list: dev01:9092,dev02:9092 # required
+      group.id: k2ws-test-group
+      auto.offset.reset: earliest # default is "largest"
+    kafka.topics:
+      - test1
+      - test2
+    address: :8888
+    endpoint.prefix: onlyyouknow # default is ""
+
+  # second Kafka config entry
+  - kafka.consumer.config:
+      metadata.broker.list: prod01:9092,prod02:9092,prod03:9092
+      group.id: k2ws-test-group2
+      enable.auto.commit: false # default is `true`
+    kafka.topics:
+      - test0
+    address: :8889
+    endpoint.websocket: ws # default is ""
+    endpoint.test: "" # default is "test"
+    include.headers: true # default is `false`
+    message.type: json # default is "json"
