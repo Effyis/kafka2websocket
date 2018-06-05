@@ -157,11 +157,11 @@ func (k2ws *K2WS) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 						}
 						var msg string
 						if kcfg.MessageType == "json" {
-							msg = fmt.Sprintf("{\"headers\":{%s},\"body\":%s}", headers, string(e.Value))
+							msg = fmt.Sprintf("{\"headers\":{%s},\"value\":%s}", headers, string(e.Value))
 						} else {
 							val, err := json.Marshal(string(e.Value))
 							if err == nil {
-								msg = fmt.Sprintf("{\"headers\":{%s},\"body\":%s}", headers, string(val))
+								msg = fmt.Sprintf("{\"headers\":{%s},\"value\":%s}", headers, string(val))
 							} else {
 								msg = fmt.Sprintf("{\"headers\":{%s}}", headers)
 							}
