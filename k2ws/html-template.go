@@ -9,10 +9,21 @@ var homeTemplate *template.Template
 func readTemplate() {
 	homeTemplate = template.Must(template.New("").Parse(`
 <!DOCTYPE html>
-<html style="height:95%">
+<html style="height:100%">
 
 <head>
     <meta charset="utf-8">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.3.1/semantic.min.css" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.3.1/components/dropdown.min.css" crossorigin="anonymous">
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.3.1/semantic.min.js" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.3.1/components/dropdown.min.js" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.38.0/codemirror.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.38.0/codemirror.min.css" crossorigin="anonymous">
+    <style>
+        .CodeMirror { height: 200px; }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.38.0/mode/javascript/javascript.min.js"></script>
     <script>
         function $f_toggleButton(element, enable) {
             element.disabled = !enable;
@@ -21,11 +32,12 @@ func readTemplate() {
         function $f_wsURL() {
             var topics = document.getElementById("topics").value;
             var group_id = document.getElementById("group.id").value;
-            var auto_offset = document.getElementById("auto_offset").value;
-            return "{{.}}?topics=" + topics + "&group.id=" + group_id + "&auto_offset=" + auto_offset;
+            var auto_offset = document.getElementById("auto.offset.reset").value;
+            return "{{.}}?topics=" + topics + "&group.id=" + group_id + "&auto.offset.reset=" + auto_offset;
         }
 
         window.addEventListener("load", function (evt) {
+            $('.ui.dropdown').dropdown();
             var $$el = {
                 open: document.getElementById("open"),
                 close: document.getElementById("close"),
@@ -33,9 +45,17 @@ func readTemplate() {
                 messageCount: document.getElementById("messageCount"),
                 mps: document.getElementById("mps"),
                 filterBox: document.getElementById("filterbox"),
+                filterEditor: undefined,//ace.edit("editor"),
                 stacked: document.getElementById("stacked"),
                 stopAfterCount: document.getElementById("stopaftercount"),
             }
+            $$el.filterEditor = CodeMirror(function(elt) {
+                    var e = document.getElementById("editor");
+                    e.parentNode.replaceChild(elt, e);
+                }, {
+                    value: document.getElementById("editor").value,
+                    mode:  "javascript"
+                });
             var $$flags = {
                 messageCount: 0,
                 message: '',
@@ -90,6 +110,21 @@ func readTemplate() {
             $f_setupInterval(500);
             setTimeout($f_statsTick, $$stats.tick);
 
+            function $$evalFilter(msg) {
+                if ($$flags.filterEnabled) {
+                    try {
+                        msg = eval('var m=' + msg + ';\n' + $$el.filterEditor.getValue());
+                        if (msg && typeof (msg) === 'object') {
+                            msg = JSON.stringify(msg, null, 4);
+                        }
+                    }
+                    catch (e) {
+                        msg = e.message;
+                    }
+                }
+                return msg;
+            }
+
             $f_toggleButton($$el.close, false);
             document.getElementById("open").onclick = function (evt) {
                 if ($$ws) {
@@ -109,17 +144,7 @@ func readTemplate() {
                 }
                 $$ws.onmessage = function (evt) {
                     var msg = evt.data;
-                    if ($$flags.filterEnabled) {
-                        try {
-                            msg = eval('var m=' + evt.data + ';\n' + $$el.filterBox.value);
-                            if (msg && typeof (msg) === 'object') {
-                                msg = JSON.stringify(msg, null, 4);
-                            }
-                        }
-                        catch (e) {
-                            msg = e.message;
-                        }
-                    }
+                    msg = $$evalFilter(msg);
                     $$flags.messageCount++;
                     $$stats.count[$$stats.index]++;
                     if (msg) {
@@ -151,6 +176,11 @@ func readTemplate() {
                 $$ws.close();
                 return false;
             };
+            document.getElementById("settings").onclick = function (evt) {
+                document.getElementById('kafka').style.display = (document.getElementById('kafka').style.display == 'none') ? 'inline' : 'none';
+                window.dispatchEvent(new Event('resize'));
+                return false;
+            }
             document.getElementById("freeze").onchange = function (evt) {
                 $$flags.intervalMsgFreezed = !!this.checked;
                 this.innerText = ($$flags.intervalMsgFreezed) ? "Unfreeze" : "Freeze";
@@ -160,7 +190,11 @@ func readTemplate() {
                 $$flags.filterEnabled = !!this.checked;
                 $$el.filterBox.style.display = $$flags.filterEnabled ? "block" : "none";
                 $$flags.message = '';
+                window.dispatchEvent(new Event('resize'));
                 return false;
+            };
+            document.getElementById("eval").onclick = function (evt) {
+                $$flags.message = $$evalFilter('""');
             };
             document.getElementById("tick").onchange = function (evt) {
                 $f_setupInterval(+this.value)
@@ -190,73 +224,115 @@ func readTemplate() {
                 document.getElementById("stopafterlimit").innerText = $$flags.stopAfter > 0 ? $$flags.stopAfter + ' :' : '';
                 return false;
             };
+            document.getElementById("resetcounter").onclick = function() {
+                $$flags.messageCount = 0;
+            }
+            window.dispatchEvent(new Event('resize'));
+        });
+
+        window.addEventListener("resize", function (evt) {
+            var n = document.getElementById("output").parentNode;
+            n.style.height = (window.innerHeight - n.offsetTop - 5) + 'px';
         });
     </script>
 </head>
 
-<body style="height:95%">
-    <table width="100%" height="100%">
-        <tr>
-            <td valign="top">
-                <form>
-                    <button id="open">Open</button>
-                    <button id="close">Close</button>
-                    <button onclick="document.getElementById('kafka').style.display = (document.getElementById('kafka').style.display == 'none') ? 'inline' : 'none'; return false">...</button>
-                    <span id="kafka" style="display: none">
-                        <input id="topics" placeholder="topic1,topic2,topic3" type="text"></input>
-                        <input id="group.id" placeholder="group id" type="text"></input>
-                        <select id="auto_offset">
-                            <option value="earliest">earliest</option>
-                            <option value="latest" selected="selected">latest</option>
-                        </select>
-                    </span>
-                </form>
-                Num of messages
-                <span id="messageCount">0</span> -
-                <span id="mps">0</span> [mps]
-            </td>
-            <td valign="bottom" align="right">
-                <table>
-                    <tr>
-                        <td align="left">
-                            <input type="checkbox" id="stopafter">Stop after <span id="stopafterlimit"></span></input>
-                            <span id="stopaftercount"></span>
-                            <br/>
-                            <input type="checkbox" id="stack">Stack</input>
-                            <span id="stacked"></span>
-                            <br/>
-                            <input type="checkbox" id="filter">Filter</input>
-                            <br/>
-                            <textarea id="filterbox" cols="50" rows="5" style="display: none">// "m" is incomming message
-// use "g" as global object if you need
-// last statement becomes final message
-// falsy message will be filtered
+<body style="height:100%; background: #f0f0f0">
+    <div>
+        <div class="small ui icon buttons">
+            <button class="ui button" id="open" title="Open WebSocket">
+                <i class="play icon"></i>
+            </button>
+            <button class="ui button" id="close" title="Stop WebSocket">
+                <i class="stop icon"></i>
+            </button>
+            <button class="ui button" id="settings" title="Setup Kafka Consumer">
+                <i class="cog icon"></i>
+            </button>
+        </div>
+        <i class="ellipsis vertical icon"></i>
+        <div class="small ui toggle checkbox">
+            <input type="checkbox" name="public" id="stopafter">
+            <label>Stop after
+                <span id="stopafterlimit"></span>
+                <span id="stopaftercount"></span>
+            </label>
+        </div>
+        <i class="ellipsis vertical icon"></i>
+        <div class="small ui toggle checkbox">
+            <input type="checkbox" name="public" id="stack">
+            <label>Stack
+                <span id="stacked"></span>
+            </label>
+        </div>
+        <i class="ellipsis vertical icon"></i>
+        <div class="small ui toggle checkbox">
+            <input type="checkbox" name="public" id="filter">
+            <label>Filter</label>
+        </div>
+        <i class="ellipsis vertical icon"></i>
+        <div class="small ui toggle checkbox">
+            <input type="checkbox" name="public" id="freeze">
+            <label>Freeze</label>
+        </div>
+    </div>
+    <div>
+        <form>
+            <div id="kafka" style="display: none">
+                <div class="small ui left icon input">
+                    <input id="topics" type="text" placeholder="topic1,topic2,topic3">
+                    <i class="plug icon"></i>
+                </div>
+                <div class="small ui left icon input">
+                    <input id="group.id" type="text" placeholder="group id">
+                    <i class="users icon"></i>
+                </div>
+                <select class="small ui dropdown" id="auto.offset.reset">
+                    <option value="earliest">earliest</option>
+                    <option value="latest" selected="selected">latest</option>
+                </select>
+            </div>
+        </form>
+    </div>
+    <br/>
+    <div id="filterbox" style="display: none; width: 100%;">
+        <textarea id="editor">/* "m" is incomming message
+ * use "g" as global object if you need
+ * last statement becomes final message
+ * falsy message will be dropped */
 m</textarea>
-                            <input type="checkbox" id="freeze">Freeze</input>
-                            <br/>
-                            <select id="tick">
-                                <option value="200">200 ms</option>
-                                <option value="500" selected="selected">500 ms</option>
-                                <option value="1000">1 sec</option>
-                                <option value="5000">5 sec</option>
-                                <option value="30000">30 sec</option>
-                            </select>
-                        </td>
-                    </tr>
-                </table>
-            </td>
-        </tr>
-        <tr height="100%">
-            <td colspan="2">
-                <textarea id="output" style="box-sizing:border-box;width:100%;height:100%;"></textarea>
-            </td>
-        </tr>
-    </table>
+        <div style="text-align: left">
+            <div class="tiny ui icon buttons">
+                <button class="ui button" id="eval" title="Evalute">
+                    <i class="exclamation icon"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+    <div style="text-align: right; padding: 2px">
+        Num of messages
+        <span id="messageCount">0</span> [<span id="mps">0</span>]
+        <button class="mini ui button" title="Reset message count" id="resetcounter">
+            <i class="redo alternate icon"></i>
+        </button>
+        <i class="ellipsis vertical icon"></i>
+        Refresh rate
+        <select class="ui dropdown" id="tick">
+            <option value="200">200 ms</option>
+            <option value="500">500 ms</option>
+            <option value="1000" selected="selected">1 sec</option>
+            <option value="5000">5 sec</option>
+            <option value="30000">30 sec</option>
+        </select>
+    </div>
+    <div class="field">
+        <textarea id="output" style="width:100%;height:100%;"></textarea>
+    </div>
 </body>
 
-</html>`))
-
-	// html, err := ioutil.ReadFile("test.html")
+</html>
+`))
+	// html, err := ioutil.ReadFile("../test.html")
 	// if err != nil {
 	// 	log.Printf("Error while reading config.yaml file: \n%v ", err)
 	// }
