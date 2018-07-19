@@ -1,5 +1,6 @@
 .vscode/
 build/
 certs/
+deploy/
 debug
 test.html
