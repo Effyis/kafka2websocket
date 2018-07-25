@@ -1,6 +1,4 @@
-## Kafka to WebSocket
-
-This will create web-socket server that will serve data from a Kafka topic(s).
+**Kafka to WebSocket** creates web-socket server that serves data from Kafka topic(s).
 
 ## Configuration
 
@@ -38,7 +36,7 @@ kafka.to.websocket:
 ```
 
 This will start two web-socket servers, one on `ws://localhost:8888/onlyyouknow` and the other one on `ws://localhost:8889/ws`.
-To test them in browser you can open `ws://localhost:8888/onlyyouknow/test` and `ws://localhost:8889/`.
+To test them in browser you can open `http://localhost:8888/onlyyouknow/test` and `http://localhost:8889/`.
 
 To serve *HTTPS* just set path to certificate file in `tls.cert.file` and private key file in `tls.key.file` ( see comments in the example above ). If you're serving *HTTPS*, clients should use `wss://` instead of `ws://` and of course `https://` instead of `http://`. Also you would normally use port `443`.
 
@@ -57,13 +55,13 @@ Property                                |Required | Range           |       Defa
 `include.headers`                       |         |                 |       `false` | Include headers into websocket message payload. Message will be in JSON format.
 `message.type`                          |         |   json, text    |          json | Type of Kafka messages. This is only important when `include.headers` option is set to `true` because it will affect creation of websocket message payload.
 
-When `topics`, `kafka.consumer.config > group.id` and/or `kafka.consumer.config > enable.auto.commit` are omitted in configuration, they are expected to be set by client as a query parameters in websocket URL. For example if websocket URL is `ws://localhost:8888/` client can set these like this `ws://localhost:8888/?topics=topicA,topicB&group.id=mygroup&enable.auto.commit=earliest`. Note that this only works for parameters that are omitted from configuration thus setting them otherwise will have no effect.
+When `topics`, `kafka.consumer.config > group.id` and/or `kafka.consumer.config > auto.offset.reset` are omitted in configuration, they are expected to be set by client as a query parameters in websocket URL. For example if websocket URL is `ws://localhost:8888/` client can set these like this `ws://localhost:8888/?topics=topicA,topicB&group.id=mygroup&auto.offset.reset=earliest`. Note that this only works for parameters that are omitted from configuration thus setting them otherwise will have no effect.
 
 You can serve more then one Kafka config entry on the same port as long as they all have unique websocket and test endpoints.
 
 ## Build
 
-**This project has `librdkafka` dependency.**
+**This project has [`librdkafka`](https://github.com/edenhill/librdkafka) dependency.**
 
 You can build it statically with `go build -tags static`. Check out [confluentinc/confluent-kafka-go](https://github.com/confluentinc/confluent-kafka-go#static-builds) for more info.
 
@@ -73,7 +71,7 @@ docker build -f Dockerfile.build -t k2ws-build .
 docker run --rm -v $PWD/build:/build k2ws-build
 ```
 
-You'll end up with `./build/k2ws` executable that works on Ubuntu and CentOS.
+You'll end up with `./build/k2ws` executable that works on Linux.
 
 ### Build and run with Docker
 **Build**
