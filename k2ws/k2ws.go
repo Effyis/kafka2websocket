@@ -23,10 +23,11 @@ type K2WS struct {
 
 // K2WSKafka Kafka config
 type K2WSKafka struct {
-	KafkaConsumerConfig kafka.ConfigMap
-	KafkaTopics         []string
-	IncludeHeaders      bool
-	MessageType         string
+	KafkaConsumerConfig     kafka.ConfigMap
+	KafkaDefaultTopicConfig kafka.ConfigMap
+	KafkaTopics             []string
+	IncludeHeaders          bool
+	MessageType             string
 }
 
 func parseQueryString(query url.Values, key string, val string) string {
@@ -44,6 +45,14 @@ func (k2ws *K2WS) Start() error {
 		return http.ListenAndServeTLS(k2ws.Address, k2ws.TLSCertFile, k2ws.TLSKeyFile, k2ws)
 	}
 	return http.ListenAndServe(k2ws.Address, k2ws)
+}
+
+func copyConfigMap(m kafka.ConfigMap) kafka.ConfigMap {
+	nm := make(kafka.ConfigMap)
+	for k, v := range m {
+		nm[k] = v
+	}
+	return nm
 }
 
 func (k2ws *K2WS) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -66,7 +75,7 @@ func (k2ws *K2WS) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 		// Read kafka params from query string
 		query := r.URL.Query()
-		config := kcfg.KafkaConsumerConfig
+		config := copyConfigMap(kcfg.KafkaConsumerConfig)
 		// config["debug"] = "protocol"
 		// config["broker.version.fallback"] = "0.8.0"
 		config["session.timeout.ms"] = 6000
@@ -75,9 +84,11 @@ func (k2ws *K2WS) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		if config["group.id"] == nil {
 			config["group.id"] = parseQueryString(query, "group.id", "")
 		}
-		if config["auto.offset.reset"] == nil {
-			config["auto.offset.reset"] = parseQueryString(query, "auto.offset.reset", "")
+		defTopic := copyConfigMap(kcfg.KafkaDefaultTopicConfig)
+		if defTopic["auto.offset.reset"] == nil {
+			defTopic["auto.offset.reset"] = parseQueryString(query, "auto.offset.reset", "")
 		}
+		config["default.topic.config"] = defTopic
 		topics := kcfg.KafkaTopics
 		if len(topics) == 0 {
 			if t := parseQueryString(query, "topics", ""); t != "" {

@@ -14,14 +14,15 @@ import (
 
 // ConfigK2WS Kafka to websocket YAML
 type ConfigK2WS struct {
-	KafkaConsumerConfig kafka.ConfigMap `yaml:"kafka.consumer.config"`
-	KafkaTopics         []string        `yaml:"kafka.topics"`
-	Address             string          `yaml:"address"`
-	EndpointPrefix      string          `yaml:"endpoint.prefix"`
-	EndpointTest        string          `yaml:"endpoint.test"`
-	EndpointWS          string          `yaml:"endpoint.websocket"`
-	IncludeHeaders      bool            `yaml:"include.headers"`
-	MessageType         string          `yaml:"message.type"`
+	KafkaConsumerConfig     kafka.ConfigMap `yaml:"kafka.consumer.config"`
+	KafkaDefaultTopicConfig kafka.ConfigMap `yaml:"kafka.default.topic.config"`
+	KafkaTopics             []string        `yaml:"kafka.topics"`
+	Address                 string          `yaml:"address"`
+	EndpointPrefix          string          `yaml:"endpoint.prefix"`
+	EndpointTest            string          `yaml:"endpoint.test"`
+	EndpointWS              string          `yaml:"endpoint.websocket"`
+	IncludeHeaders          bool            `yaml:"include.headers"`
+	MessageType             string          `yaml:"message.type"`
 }
 
 // Config YAML config file
@@ -107,10 +108,11 @@ func ReadK2WS(filename string) []*K2WS {
 		}
 		k2ws.TestUIs[testPath] = &wsPath
 		k2ws.WebSockets[wsPath] = &K2WSKafka{
-			KafkaConsumerConfig: kwsc.KafkaConsumerConfig,
-			KafkaTopics:         kwsc.KafkaTopics,
-			IncludeHeaders:      kwsc.IncludeHeaders,
-			MessageType:         kwsc.MessageType,
+			KafkaConsumerConfig:     kwsc.KafkaConsumerConfig,
+			KafkaDefaultTopicConfig: kwsc.KafkaDefaultTopicConfig,
+			KafkaTopics:             kwsc.KafkaTopics,
+			IncludeHeaders:          kwsc.IncludeHeaders,
+			MessageType:             kwsc.MessageType,
 		}
 	}
 	k2wss := make([]*K2WS, len(k2wsMap))
