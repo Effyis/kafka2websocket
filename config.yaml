@@ -6,6 +6,7 @@ kafka.to.websocket:
   - kafka.consumer.config:
       metadata.broker.list: dev01:9092,dev02:9092 # required
       group.id: k2ws-test-group
+    kafka.default.topic.config:
       auto.offset.reset: earliest # default is "largest"
     kafka.topics:
       - test1
@@ -15,12 +16,11 @@ kafka.to.websocket:
 
   # second Kafka config entry
   - kafka.consumer.config:
-      metadata.broker.list: prod01:9092,prod02:9092,prod03:9092
-      group.id: k2ws-test-group2
+      metadata.broker.list: kafka01:9092,kafka02:9092,kafka03:9092
+      # group.id is not defined so client should set group.id by passing `group.id` query parameter
       enable.auto.commit: false # default is `true`
-    kafka.topics:
-      - test0
-    address: :8889
+    # kafka.topics is not defined so client should set topic(s) by passing comma separated list of topics to `topics` query parameter
+    address: :8889 # it would be fine to use the same port 8888 too
     endpoint.websocket: ws # default is ""
     endpoint.test: "" # default is "test"
     include.headers: true # default is `false`
