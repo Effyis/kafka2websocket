@@ -4,6 +4,10 @@ import (
 	"html/template"
 )
 
+type templateInfo struct {
+	TestPath, WSURL string
+}
+
 var homeTemplate *template.Template
 
 func readTemplate() {
@@ -13,17 +17,17 @@ func readTemplate() {
 
 <head>
     <meta charset="utf-8">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.3.1/semantic.min.css" crossorigin="anonymous">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.3.1/components/dropdown.min.css" crossorigin="anonymous">
-    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" crossorigin="anonymous"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.3.1/semantic.min.js" crossorigin="anonymous"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.3.1/components/dropdown.min.js" crossorigin="anonymous"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.38.0/codemirror.min.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.38.0/codemirror.min.css" crossorigin="anonymous">
+    <link rel="stylesheet" href="{{.TestPath}}/static/semantic-ui/2.3.1/semantic.min.css" crossorigin="anonymous">
+    <link rel="stylesheet" href="{{.TestPath}}/static/semantic-ui/2.3.1/components/dropdown.min.css" crossorigin="anonymous">
+    <script src="{{.TestPath}}/static/jquery-3.3.1.slim.min.js" crossorigin="anonymous"></script>
+    <script src="{{.TestPath}}/static/semantic-ui/2.3.1/semantic.min.js" crossorigin="anonymous"></script>
+    <script src="{{.TestPath}}/static/semantic-ui/2.3.1/components/dropdown.min.js" crossorigin="anonymous"></script>
+    <script src="{{.TestPath}}/static/codemirror/5.38.0/codemirror.min.js"></script>
+    <link rel="stylesheet" href="{{.TestPath}}/static/codemirror/5.38.0/codemirror.min.css" crossorigin="anonymous">
     <style>
         .CodeMirror { height: 200px; }
     </style>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.38.0/mode/javascript/javascript.min.js"></script>
+    <script src="{{.TestPath}}/static/codemirror/5.38.0/mode/javascript/javascript.min.js"></script>
     <script>
         function $f_toggleButton(element, enable) {
             element.disabled = !enable;
@@ -33,7 +37,7 @@ func readTemplate() {
             var topics = document.getElementById("topics").value;
             var group_id = document.getElementById("group.id").value;
             var auto_offset = document.getElementById("auto.offset.reset").value;
-            return "{{.}}?topics=" + topics + "&group.id=" + group_id + "&auto.offset.reset=" + auto_offset;
+            return "{{.WSURL}}?topics=" + topics + "&group.id=" + group_id + "&auto.offset.reset=" + auto_offset;
         }
 
         window.addEventListener("load", function (evt) {

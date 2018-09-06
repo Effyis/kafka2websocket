@@ -73,6 +73,9 @@ When `topics`, `kafka.consumer.config/group.id` and/or `kafka.consumer.config/au
 
 You can serve more then one Kafka config entry on the same port as long as they all have unique websocket and test endpoints.
 
+## Updating static HTTP files
+Add/remove/modify files in `k2ws/static` directory and using [esc](https://github.com/mjibson/esc) tool from inside `k2ws` directory run `esc -o static.go static`. This will re-create `static.go`. 
+
 ## Build
 
 **This project has [`librdkafka`](https://github.com/edenhill/librdkafka) dependency.**

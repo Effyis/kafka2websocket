@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"regexp"
 	"strings"
 
 	"github.com/confluentinc/confluent-kafka-go/kafka"
@@ -28,6 +29,21 @@ type K2WSKafka struct {
 	KafkaTopics             []string
 	IncludeHeaders          bool
 	MessageType             string
+}
+
+var rexStatic = regexp.MustCompile(`(.*)(/static/.+(\.[a-z0-9]+))$`)
+var mimeTypes = map[string]string{
+	".js":   "application/javascript",
+	".htm":  "text/html; charset=utf-8",
+	".html": "text/html; charset=utf-8",
+	".css":  "text/css; charset=utf-8",
+	".json": "application/json",
+	".xml":  "text/xml; charset=utf-8",
+	".jpg":  "image/jpeg",
+	".png":  "image/png",
+	".svg":  "image/svg+xml",
+	".gif":  "image/gif",
+	".pdf":  "application/pdf",
 }
 
 func parseQueryString(query url.Values, key string, val string) string {
@@ -56,12 +72,30 @@ func copyConfigMap(m kafka.ConfigMap) kafka.ConfigMap {
 }
 
 func (k2ws *K2WS) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if wsPath, exists := k2ws.TestUIs[r.URL.Path]; exists {
+	submatch := rexStatic.FindStringSubmatch(r.URL.Path)
+	if len(submatch) > 0 {
+		// serve static files
+		testUIPath := submatch[1]
+		if testUIPath == "" {
+			testUIPath = "/"
+		}
+		if _, exists := k2ws.TestUIs[testUIPath]; exists {
+			if payload, err := FSByte(false, submatch[2]); err == nil {
+				var mime = "application/octet-stream"
+				if m, ok := mimeTypes[submatch[3]]; ok {
+					mime = m
+				}
+				w.Header().Add("Content-Type", mime)
+				w.Header().Add("Content-Length", fmt.Sprintf("%d", len(payload)))
+				w.Write(payload)
+			}
+		}
+	} else if wsPath, exists := k2ws.TestUIs[r.URL.Path]; exists {
 		// readTemplate()
 		if k2ws.TLSCertFile != "" {
-			homeTemplate.Execute(w, "wss://"+r.Host+*wsPath)
+			homeTemplate.Execute(w, templateInfo{strings.TrimRight(r.URL.Path, "/"), "wss://" + r.Host + *wsPath})
 		} else {
-			homeTemplate.Execute(w, "ws://"+r.Host+*wsPath)
+			homeTemplate.Execute(w, templateInfo{strings.TrimRight(r.URL.Path, "/"), "ws://" + r.Host + *wsPath})
 		}
 	} else if kcfg, exists := k2ws.WebSockets[r.URL.Path]; exists {
 		// Upgrade to websocket connection
@@ -194,7 +228,6 @@ func (k2ws *K2WS) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		log.Printf("Websocket closed %s\n", r.Host)
-	} else {
-		w.WriteHeader(404)
 	}
+	w.WriteHeader(404)
 }
