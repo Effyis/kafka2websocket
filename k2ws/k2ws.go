@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -27,7 +26,7 @@ type K2WSKafka struct {
 	KafkaConsumerConfig     kafka.ConfigMap
 	KafkaDefaultTopicConfig kafka.ConfigMap
 	KafkaTopics             []string
-	IncludeHeaders          bool
+	MessageDetails          bool
 	MessageType             string
 }
 
@@ -192,26 +191,13 @@ func (k2ws *K2WS) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				case kafka.RevokedPartitions:
 					consumer.Unassign()
 				case *kafka.Message:
-					if kcfg.IncludeHeaders {
-						headers := ""
-						for _, header := range e.Headers {
-							headers += fmt.Sprintf(",\"%s\":\"%s\"", header.Key, string(header.Value))
-						}
-						if len(headers) > 0 {
-							headers = headers[1:]
-						}
-						var msg string
-						if kcfg.MessageType == "json" {
-							msg = fmt.Sprintf("{\"headers\":{%s},\"value\":%s}", headers, string(e.Value))
+					if kcfg.MessageDetails {
+						val, err2 := JSONBytefy(e, kcfg.MessageType)
+						if err2 == nil {
+							err = wscon.WriteMessage(websocket.TextMessage, val)
 						} else {
-							val, err := json.Marshal(string(e.Value))
-							if err == nil {
-								msg = fmt.Sprintf("{\"headers\":{%s},\"value\":%s}", headers, string(val))
-							} else {
-								msg = fmt.Sprintf("{\"headers\":{%s}}", headers)
-							}
+							err = wscon.WriteMessage(websocket.TextMessage, e.Value)
 						}
-						err = wscon.WriteMessage(websocket.TextMessage, []byte(msg))
 					} else {
 						err = wscon.WriteMessage(websocket.TextMessage, e.Value)
 					}

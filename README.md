@@ -66,8 +66,8 @@ Property                                |Required | Range           |       Defa
 `endpoint.prefix`                       |         |                 |               | Prefix of the websocket and test paths. By default is empty.
 `endpoint.websocket`                    |         |                 |               | Path to websocket URL. By default it's empty.
 `endpoint.test`                         |         |                 |          test | Path to test page URL.
-`include.headers`                       |         |                 |       `false` | Include headers into websocket message payload. Message will be in JSON format.
-`message.type`                          |         |   json, text    |          json | Type of Kafka messages. This is only important when `include.headers` option is set to `true` because it will affect creation of websocket message payload.
+`message.details`                       |         |                 |       `false` | Include key, headers, topic partition, timesteamp into websocket message payload. Message will be in JSON format.
+`message.type`                          |         |   json, text    |          json | Type of Kafka messages. This is only important when `message.details` option is set to `true` because it will affect creation of websocket message payload.
 
 When `topics`, `kafka.consumer.config/group.id` and/or `kafka.consumer.config/auto.offset.reset` are omitted in configuration, they are expected to be set by client as a query parameters in websocket URL. For example if websocket URL is `ws://localhost:8888/` client can set these by making request to `ws://localhost:8888/?topics=topicA,topicB&group.id=mygroup&auto.offset.reset=earliest`. Note that this only works for parameters that are omitted from configuration thus setting them otherwise will have no effect.
 

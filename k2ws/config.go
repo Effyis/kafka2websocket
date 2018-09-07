@@ -21,7 +21,7 @@ type ConfigK2WS struct {
 	EndpointPrefix          string          `yaml:"endpoint.prefix"`
 	EndpointTest            string          `yaml:"endpoint.test"`
 	EndpointWS              string          `yaml:"endpoint.websocket"`
-	IncludeHeaders          bool            `yaml:"include.headers"`
+	MessageDetails          bool            `yaml:"message.details"`
 	MessageType             string          `yaml:"message.type"`
 }
 
@@ -111,7 +111,7 @@ func ReadK2WS(filename string) []*K2WS {
 			KafkaConsumerConfig:     kwsc.KafkaConsumerConfig,
 			KafkaDefaultTopicConfig: kwsc.KafkaDefaultTopicConfig,
 			KafkaTopics:             kwsc.KafkaTopics,
-			IncludeHeaders:          kwsc.IncludeHeaders,
+			MessageDetails:          kwsc.MessageDetails,
 			MessageType:             kwsc.MessageType,
 		}
 	}
