@@ -87,6 +87,7 @@ func (k2ws *K2WS) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				w.Header().Add("Content-Type", mime)
 				w.Header().Add("Content-Length", fmt.Sprintf("%d", len(payload)))
 				w.Write(payload)
+				return
 			}
 		}
 	} else if wsPath, exists := k2ws.TestUIs[r.URL.Path]; exists {
@@ -96,6 +97,7 @@ func (k2ws *K2WS) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		} else {
 			homeTemplate.Execute(w, templateInfo{strings.TrimRight(r.URL.Path, "/"), "ws://" + r.Host + *wsPath})
 		}
+		return
 	} else if kcfg, exists := k2ws.WebSockets[r.URL.Path]; exists {
 		// Upgrade to websocket connection
 		upgrader := websocket.Upgrader{}
@@ -214,6 +216,7 @@ func (k2ws *K2WS) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		log.Printf("Websocket closed %s\n", r.Host)
+		return
 	}
 	w.WriteHeader(404)
 }
