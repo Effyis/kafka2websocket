@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"html/template"
 	"log"
 	"net/http"
 	"net/url"
@@ -30,6 +31,12 @@ type K2WSKafka struct {
 	MessageType             string
 }
 
+type templateInfo struct {
+	TestPath, WSURL string
+}
+
+var localStatic = false
+var testTemplate *template.Template
 var rexStatic = regexp.MustCompile(`(.*)(/static/.+(\.[a-z0-9]+))$`)
 var mimeTypes = map[string]string{
 	".js":   "application/javascript",
@@ -79,7 +86,7 @@ func (k2ws *K2WS) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			testUIPath = "/"
 		}
 		if _, exists := k2ws.TestUIs[testUIPath]; exists {
-			if payload, err := FSByte(false, submatch[2]); err == nil {
+			if payload, err := FSByte(localStatic, submatch[2]); err == nil {
 				var mime = "application/octet-stream"
 				if m, ok := mimeTypes[submatch[3]]; ok {
 					mime = m
@@ -91,11 +98,16 @@ func (k2ws *K2WS) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	} else if wsPath, exists := k2ws.TestUIs[r.URL.Path]; exists {
-		// readTemplate()
-		if k2ws.TLSCertFile != "" {
-			homeTemplate.Execute(w, templateInfo{strings.TrimRight(r.URL.Path, "/"), "wss://" + r.Host + *wsPath})
-		} else {
-			homeTemplate.Execute(w, templateInfo{strings.TrimRight(r.URL.Path, "/"), "ws://" + r.Host + *wsPath})
+		html, err := FSString(localStatic, "/static/test.html")
+		if err == nil {
+			wsURL := "ws://" + r.Host + *wsPath
+			if k2ws.TLSCertFile != "" {
+				wsURL = "wss://" + r.Host + *wsPath
+			}
+			if testTemplate == nil || localStatic {
+				testTemplate = template.Must(template.New("").Parse(html))
+			}
+			testTemplate.Execute(w, templateInfo{strings.TrimRight(r.URL.Path, "/"), wsURL})
 		}
 		return
 	} else if kcfg, exists := k2ws.WebSockets[r.URL.Path]; exists {

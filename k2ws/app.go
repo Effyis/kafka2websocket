@@ -11,7 +11,6 @@ func main() {
 	configFile := flag.String("config", "config.yaml", "Config file location")
 	flag.Parse()
 
-	readTemplate()
 	list := ReadK2WS(*configFile)
 	for i := range list {
 		go func(k2ws *K2WS) {

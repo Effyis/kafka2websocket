@@ -1,17 +1,3 @@
-package main
-
-import (
-	"html/template"
-)
-
-type templateInfo struct {
-	TestPath, WSURL string
-}
-
-var homeTemplate *template.Template
-
-func readTemplate() {
-	homeTemplate = template.Must(template.New("").Parse(`
 <!DOCTYPE html>
 <html style="height:100%">
 
@@ -354,10 +340,3 @@ m</textarea>
 </body>
 
 </html>
-`))
-	// html, err := ioutil.ReadFile("../test.html")
-	// if err != nil {
-	// 	log.Printf("Error while reading config.yaml file: \n%v ", err)
-	// }
-	// homeTemplate = template.Must(template.New("").Parse(string(html)))
-}
