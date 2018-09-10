@@ -146,30 +146,32 @@
                     $f_toggleButton($$el.close, false);
                 }
                 $$ws.onmessage = function (evt) {
-                    $$flags.rawMessage = evt.data;
-                    var msg = $$evalFilter($$flags.rawMessage);
                     $$flags.messageCount++;
                     $$stats.count[$$stats.index]++;
-                    if (msg) {
-                        if ($$flags.stackingEnabled && !$$flags.intervalMsgFreezed) {
-                            var splitter = ($$flags.message) ? ',' : '';
-                            var isString = false;
-                            try {
-                                if (typeof(msg) === 'string') {
-                                    JSON.parse(msg);
+                    if (!$$flags.intervalMsgFreezed) {
+                        $$flags.rawMessage = evt.data;
+                        var msg = $$evalFilter($$flags.rawMessage);
+                        if (msg) {
+                            if ($$flags.stackingEnabled) {
+                                var splitter = ($$flags.message) ? ',' : '';
+                                var isString = false;
+                                try {
+                                    if (typeof(msg) === 'string') {
+                                        JSON.parse(msg);
+                                    }
+                                } catch(e) {
+                                    isString = true;
                                 }
-                            } catch(e) {
-                                isString = true;
+                                $$flags.message += splitter + (isString ? '"' + msg + '"' : msg);
+                                $$flags.stackedMessages++;
+                            } else {
+                                $$flags.message = msg;
                             }
-                            $$flags.message += splitter + (isString ? '"' + msg + '"' : msg);
-                            $$flags.stackedMessages++;
-                        } else {
-                            $$flags.message = msg;
-                        }
-                        if ($$flags.closeAfter > 0) {
-                            $$flags.closeAfterCount++;
-                            if ($$flags.closeAfterCount >= $$flags.closeAfter) {
-                                document.getElementById("close").click();
+                            if ($$flags.closeAfter > 0) {
+                                $$flags.closeAfterCount++;
+                                if ($$flags.closeAfterCount >= $$flags.closeAfter) {
+                                    document.getElementById("close").click();
+                                }
                             }
                         }
                     }
