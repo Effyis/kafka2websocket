@@ -17,20 +17,32 @@ func readTemplate() {
 
 <head>
     <meta charset="utf-8">
-    <link rel="stylesheet" href="{{.TestPath}}/static/semantic-ui/2.3.1/semantic.min.css" crossorigin="anonymous">
-    <link rel="stylesheet" href="{{.TestPath}}/static/semantic-ui/2.3.1/components/dropdown.min.css" crossorigin="anonymous">
-    <script src="{{.TestPath}}/static/jquery-3.3.1.slim.min.js" crossorigin="anonymous"></script>
-    <script src="{{.TestPath}}/static/semantic-ui/2.3.1/semantic.min.js" crossorigin="anonymous"></script>
-    <script src="{{.TestPath}}/static/semantic-ui/2.3.1/components/dropdown.min.js" crossorigin="anonymous"></script>
+
+    <link rel="stylesheet" href="{{.TestPath}}/static/spectre.css/dist/spectre.min.css">
+    <link rel="stylesheet" href="{{.TestPath}}/static/spectre.css/dist/spectre-exp.min.css">
+    <link rel="stylesheet" href="{{.TestPath}}/static/spectre.css/dist/spectre-icons.min.css">
     <script src="{{.TestPath}}/static/codemirror/5.38.0/codemirror.min.js"></script>
     <link rel="stylesheet" href="{{.TestPath}}/static/codemirror/5.38.0/codemirror.min.css" crossorigin="anonymous">
     <style>
-        .CodeMirror { height: 200px; }
+        .CodeMirror { height: 100%; }
     </style>
     <script src="{{.TestPath}}/static/codemirror/5.38.0/mode/javascript/javascript.min.js"></script>
     <script>
-        function $f_toggleButton(element, enable) {
-            element.disabled = !enable;
+        function $f_toggleButton(element, enable, activation) {
+            if (!activation) {
+                element.disabled = !enable;
+            } else {
+                const activeClass = 'btn-primary';
+                if (enable) {
+                    if (!element.classList.contains(activeClass)) {
+                        element.classList.add(activeClass);
+                    }
+                } else {
+                    if (element.classList.contains(activeClass)) {
+                        element.classList.remove(activeClass);
+                    }
+                }
+            }
         }
 
         function $f_wsURL() {
@@ -41,7 +53,6 @@ func readTemplate() {
         }
 
         window.addEventListener("load", function (evt) {
-            $('.ui.dropdown').dropdown();
             var $$el = {
                 open: document.getElementById("open"),
                 close: document.getElementById("close"),
@@ -51,7 +62,7 @@ func readTemplate() {
                 filterBox: document.getElementById("filterbox"),
                 filterEditor: undefined,//ace.edit("editor"),
                 stacked: document.getElementById("stacked"),
-                stopAfterCount: document.getElementById("stopaftercount"),
+                closeAfterCount: document.getElementById("closeaftercount"),
             }
             $$el.filterEditor = CodeMirror(function(elt) {
                     var e = document.getElementById("editor");
@@ -61,13 +72,15 @@ func readTemplate() {
                     mode:  "javascript"
                 });
             var $$flags = {
+                rawMessage: '',
                 messageCount: 0,
                 message: '',
                 intervalMsgFreezed: false,
                 filterEnabled: false,
                 stackingEnabled: false,
                 stackedMessages: 0,
-                stopAfter: 0,
+                closeAfter: 0,
+                closeAfterCount: 0,
             }
             var $$stats = {
                 tick: 0,
@@ -89,7 +102,7 @@ func readTemplate() {
                 $$stats.index = 0;
             }
             function $f_statsTick() {
-                $$el.stopAfterCount.innerText = $$flags.stopAfterCount ? $$flags.stopAfterCount : '';
+                $$el.closeAfterCount.innerText = $$flags.closeAfterCount;
                 $$el.messageCount.innerText = $$flags.messageCount;
                 var intervalTotal = $$stats.count.reduce((a, b) => a + b, 0);
                 var index2 = ($$stats.index + 1) % $$stats.size;
@@ -134,7 +147,7 @@ func readTemplate() {
                 if ($$ws) {
                     return false;
                 }
-                $$flags.stopAfterCount = 0;
+                $$flags.closeAfterCount = 0;
                 $f_toggleButton($$el.open, false);
                 $$ws = new WebSocket($f_wsURL());
                 $$ws.onopen = function (evt) {
@@ -147,21 +160,29 @@ func readTemplate() {
                     $f_toggleButton($$el.close, false);
                 }
                 $$ws.onmessage = function (evt) {
-                    var msg = evt.data;
-                    msg = $$evalFilter(msg);
+                    $$flags.rawMessage = evt.data;
+                    var msg = $$evalFilter($$flags.rawMessage);
                     $$flags.messageCount++;
                     $$stats.count[$$stats.index]++;
                     if (msg) {
                         if ($$flags.stackingEnabled && !$$flags.intervalMsgFreezed) {
                             var splitter = ($$flags.message) ? ',' : '';
-                            $$flags.message += splitter + msg;
+                            var isString = false;
+                            try {
+                                if (typeof(msg) === 'string') {
+                                    JSON.parse(msg);
+                                }
+                            } catch(e) {
+                                isString = true;
+                            }
+                            $$flags.message += splitter + (isString ? '"' + msg + '"' : msg);
                             $$flags.stackedMessages++;
                         } else {
                             $$flags.message = msg;
                         }
-                        if ($$flags.stopAfter > 0) {
-                            $$flags.stopAfterCount++;
-                            if ($$flags.stopAfterCount >= $$flags.stopAfter) {
+                        if ($$flags.closeAfter > 0) {
+                            $$flags.closeAfterCount++;
+                            if ($$flags.closeAfterCount >= $$flags.closeAfter) {
                                 document.getElementById("close").click();
                             }
                         }
@@ -181,51 +202,60 @@ func readTemplate() {
                 return false;
             };
             document.getElementById("settings").onclick = function (evt) {
-                document.getElementById('kafka').style.display = (document.getElementById('kafka').style.display == 'none') ? 'inline' : 'none';
+                const elSetup = document.getElementById('kafka');
+                const hiden = elSetup.style.display == 'none';
+                elSetup.style.display = hiden ? 'block' : 'none';
+                $f_toggleButton(this, hiden, true);
                 window.dispatchEvent(new Event('resize'));
                 return false;
             }
-            document.getElementById("freeze").onchange = function (evt) {
-                $$flags.intervalMsgFreezed = !!this.checked;
-                this.innerText = ($$flags.intervalMsgFreezed) ? "Unfreeze" : "Freeze";
+            document.getElementById("freeze").onclick = function (evt) {
+                $$flags.intervalMsgFreezed = !$$flags.intervalMsgFreezed;
+                $f_toggleButton(this, $$flags.intervalMsgFreezed, true);
                 return false;
             };
-            document.getElementById("filter").onchange = function (evt) {
-                $$flags.filterEnabled = !!this.checked;
-                $$el.filterBox.style.display = $$flags.filterEnabled ? "block" : "none";
+            document.getElementById("filter").onclick = function (evt) {
+                $$flags.filterEnabled = !$$flags.filterEnabled;
+                $f_toggleButton(this, $$flags.filterEnabled, true);
+                document.getElementById("eval").style.display = $$flags.filterEnabled ? "inline-block" : "none";
+                // $$el.filterBox.parentElement.classList
+                $$el.output.parentElement.classList.toggle("col-12");
+                $$el.output.parentElement.classList.toggle("col-7");
+                $$el.filterBox.parentElement.style.display = $$flags.filterEnabled ? "block" : "none";
                 $$flags.message = '';
                 window.dispatchEvent(new Event('resize'));
                 return false;
             };
             document.getElementById("eval").onclick = function (evt) {
-                $$flags.message = $$evalFilter('""');
+                $$el.output.value = $$flags.message = $$evalFilter($$flags.rawMessage || '""');
             };
             document.getElementById("tick").onchange = function (evt) {
                 $f_setupInterval(+this.value)
                 return false;
             };
-            document.getElementById("stack").onchange = function (evt) {
-                $$flags.stackingEnabled = !!this.checked
-                if ($$flags.stackingEnabled) {
-                    $$flags.message = '';
-                    $$flags.stackedMessages = 0;
-                }
+            document.getElementById("stack").onclick = function (evt) {
+                $$flags.stackingEnabled = !$$flags.stackingEnabled;
+                $f_toggleButton(this, $$flags.stackingEnabled, true);
+                $$flags.message = '';
+                $$flags.stackedMessages = 0;
                 return false;
             };
-            document.getElementById("stopafter").onchange = function (evt) {
-                if (!!this.checked) {
-                    p = prompt("Stop after this number of messages:", $$flags.stopAfter > 0 ? $$flags.stopAfter : 10);
+            document.getElementById("closeafter").onclick = function (evt) {
+                if (!$$flags.closeAfter) {
+                    p = prompt("Stop after receiving this number of messages:", $$flags.closeAfter > 0 ? $$flags.closeAfter : 10);
                     if (p === null || isNaN(+p) || +p <= 0) {
                         this.checked = false;
                     } else {
-                        $$flags.stopAfter = +p;
-                        $$flags.stopAfterCount = 0;
+                        $$flags.closeAfter = +p;
+                        $$flags.closeAfterCount = 0;
                     }
                 } else {
-                    $$flags.stopAfter = 0;
-                    $$flags.stopAfterCount = 0;
+                    $$flags.closeAfter = 0;
+                    $$flags.closeAfterCount = 0;
                 }
-                document.getElementById("stopafterlimit").innerText = $$flags.stopAfter > 0 ? $$flags.stopAfter + ' :' : '';
+                $f_toggleButton(this, !!$$flags.closeAfter, true);
+                document.getElementById("closeafterlimit").innerText = $$flags.closeAfter;
+                document.getElementById("closeafterstatus").style.display = !!$$flags.closeAfter ? "inline" : "none";
                 return false;
             };
             document.getElementById("resetcounter").onclick = function() {
@@ -242,95 +272,84 @@ func readTemplate() {
 </head>
 
 <body style="height:100%; background: #f0f0f0">
-    <div>
-        <div class="small ui icon buttons">
-            <button class="ui button" id="open" title="Open WebSocket">
-                <i class="play icon"></i>
+    <div class="columns" style="margin: 0 !important; padding: 2px">
+        <div class="col-6 col-sm-12">
+            <button class="btn" id="open" title="Open WebSocket {{.WSURL}}">Open</button>
+            <button class="btn" id="close" title="Close WebSocket {{.WSURL}}">Close</button>
+            <button class="btn" id="settings" title="Setup Kafka consumer, some or all options might be ignored depending on server configuration">Setup</button>
+            <button class="btn" id="closeafter" title="Close after receiving predefined number of messages">
+                Auto-close
+                <span id="closeafterstatus" style="display:none">
+                    after <span id="closeaftercount"></span>/<span id="closeafterlimit"></span>
+                </span>
             </button>
-            <button class="ui button" id="close" title="Stop WebSocket">
-                <i class="stop icon"></i>
-            </button>
-            <button class="ui button" id="settings" title="Setup Kafka Consumer">
-                <i class="cog icon"></i>
-            </button>
-        </div>
-        <i class="ellipsis vertical icon"></i>
-        <div class="small ui toggle checkbox">
-            <input type="checkbox" name="public" id="stopafter">
-            <label>Stop after
-                <span id="stopafterlimit"></span>
-                <span id="stopaftercount"></span>
-            </label>
-        </div>
-        <i class="ellipsis vertical icon"></i>
-        <div class="small ui toggle checkbox">
-            <input type="checkbox" name="public" id="stack">
-            <label>Stack
+            <button class="btn" id="stack" title="Stack messages">
+                Stack
                 <span id="stacked"></span>
-            </label>
-        </div>
-        <i class="ellipsis vertical icon"></i>
-        <div class="small ui toggle checkbox">
-            <input type="checkbox" name="public" id="filter">
-            <label>Filter</label>
-        </div>
-        <i class="ellipsis vertical icon"></i>
-        <div class="small ui toggle checkbox">
-            <input type="checkbox" name="public" id="freeze">
-            <label>Freeze</label>
-        </div>
-    </div>
-    <div>
-        <form>
-            <div id="kafka" style="display: none">
-                <div class="small ui left icon input">
-                    <input id="topics" type="text" placeholder="topic1,topic2,topic3">
-                    <i class="plug icon"></i>
-                </div>
-                <div class="small ui left icon input">
-                    <input id="group.id" type="text" placeholder="group id">
-                    <i class="users icon"></i>
-                </div>
-                <select class="small ui dropdown" id="auto.offset.reset">
-                    <option value="earliest">earliest</option>
-                    <option value="latest" selected="selected">latest</option>
-                </select>
+            </button>
+            
+            <div id="kafka" style="display: none; max-width: 400px !important">
+                <form class="form-horizontal">
+                    <div class="form-group">
+                        <div class="col-3 col-sm-12">
+                            <label class="form-label label-sm" for="topics">Topic(s)</label>
+                        </div>
+                        <div class="col-9 col-sm-12">
+                            <input id="topics" class="form-input input-sm" type="text" placeholder="topic1,topic2,topic3">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <div class="col-3 col-sm-12">
+                            <label class="form-label label-sm" for="group.id">GroupID</label>
+                        </div>
+                        <div class="col-9 col-sm-12">
+                            <input id="group.id" class="form-input input-sm" type="text" placeholder="group id">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <div class="col-3 col-sm-12">
+                            <label class="form-label label-sm" for="auto.offset.reset">Offset</label>
+                        </div>
+                        <div class="col-9 col-sm-12">
+                            <select class="form-input input-sm" id="auto.offset.reset">
+                                <option value="earliest">earliest</option>
+                                <option value="latest" selected="selected">latest</option>
+                            </select>
+                        </div>
+                    </div>
+                </form>
             </div>
-        </form>
+        </div>
+        <div class="col-6 col-sm-12" style="text-align: right">
+            <button class="btn" id="resetcounter" title="Total num of messages and message rate, click to reset">
+                <span id="messageCount">0</span> / <sub><span id="mps">0</span> mps</sub>
+            </button>
+            <select class="form-select form-inline" id="tick" style="width:auto" title="Display rate">
+                <option value="200">200 ms</option>
+                <option value="500">500 ms</option>
+                <option value="1000" selected="selected">1 sec</option>
+                <option value="5000">5 sec</option>
+                <option value="30000">30 sec</option>
+            </select>
+            <button class="btn" id="eval" style="display: none;" title="Evalute current filter">Evalute</button>
+            <button class="btn" id="filter" title="Filter messages">Filter</button>
+            <button class="btn" id="freeze" title="Freeze displaying messages">Freeze</button>
+        </div>
     </div>
-    <br/>
-    <div id="filterbox" style="display: none; width: 100%;">
-        <textarea id="editor">/* "m" is incomming message
- * use "g" as global object if you need
- * last statement becomes final message
- * falsy message will be dropped */
+
+    <div class="columns" style="margin: 0 !important; padding: 2px">
+        <div class="col-12 col-sm-12">
+            <textarea id="output" style="width: 100%; height: 100%; resize: none;"></textarea>
+        </div>
+        <div class="col-5 col-sm-12" style="display: none; padding-left: 5px">
+            <div id="filterbox" style="width: 100%; height:100%; border: 1px solid rgb(169, 169, 169)">
+                <textarea id="editor">/* "m" is incomming message
+* use "g" as global object if you need
+* last statement becomes final message
+* falsy message will be dropped */
 m</textarea>
-        <div style="text-align: left">
-            <div class="tiny ui icon buttons">
-                <button class="ui button" id="eval" title="Evalute">
-                    <i class="exclamation icon"></i>
-                </button>
             </div>
         </div>
-    </div>
-    <div style="text-align: right; padding: 2px">
-        Num of messages
-        <span id="messageCount">0</span> [<span id="mps">0</span>]
-        <button class="mini ui button" title="Reset message count" id="resetcounter">
-            <i class="redo alternate icon"></i>
-        </button>
-        <i class="ellipsis vertical icon"></i>
-        Refresh rate
-        <select class="ui dropdown" id="tick">
-            <option value="200">200 ms</option>
-            <option value="500">500 ms</option>
-            <option value="1000" selected="selected">1 sec</option>
-            <option value="5000">5 sec</option>
-            <option value="30000">30 sec</option>
-        </select>
-    </div>
-    <div class="field">
-        <textarea id="output" style="width:100%;height:100%;"></textarea>
     </div>
 </body>
 
