@@ -46,7 +46,7 @@
                 messageCount: document.getElementById("messageCount"),
                 mps: document.getElementById("mps"),
                 filterBox: document.getElementById("filterbox"),
-                filterEditor: undefined,//ace.edit("editor"),
+                filterEditor: undefined,
                 stacked: document.getElementById("stacked"),
                 closeAfterCount: document.getElementById("closeaftercount"),
             }
@@ -58,6 +58,7 @@
                     mode:  "javascript"
                 });
             var $$flags = {
+                isOpen: false,
                 rawMessage: '',
                 messageCount: 0,
                 message: '',
@@ -70,30 +71,20 @@
                 closeAfterCount: 0,
             }
             var $$stats = {
-                tick: 0,
-                size: 0,
-                count: [],
-                date: [],
-                index: 0,
+                prevTickDate: 0,
+                count: 0,
+                countHistory: Array.apply(null, Array(10)).map(Number.prototype.valueOf,0),
+                countHistoryPosition: 0,
+                countHistoryLength: 0,
+                countHistorySum: 0,
             }
             // ws handle
             var $$ws;
             // filter global
             var g = {};
 
-            function $f_setupInterval(tick) {
-                $$stats.tick = tick;
-                $$stats.size = Math.floor(5000 / $$stats.tick) + 1;
-                $$stats.count = Array($$stats.size).fill(0);
-                $$stats.date = Array($$stats.size).fill(0);
-                $$stats.index = 0;
-            }
-            function $f_statsTick() {
+            function $f_displayTick() {
                 $$el.closeAfterCount.innerText = $$flags.closeAfterCount;
-                $$el.messageCount.innerText = $$flags.messageCount;
-                var intervalTotal = $$stats.count.reduce((a, b) => a + b, 0);
-                var index2 = ($$stats.index + 1) % $$stats.size;
-                $$el.mps.innerText = Math.round(1000 * intervalTotal / (Date.now() - $$stats.date[index2]));
                 var msg = '';
                 if ($$flags.message) {
                     try { msg = JSON.stringify(JSON.parse($$flags.message), null, 4); }
@@ -106,13 +97,40 @@
                     $$el.output.value = msg;
                     $$el.stacked.innerText = $$flags.stackedMessages ? $$flags.stackedMessages : '';
                 }
-                $$stats.date[$$stats.index] = Date.now();
-                $$stats.index = index2;
-                $$stats.count[$$stats.index] = 0;
-                setTimeout($f_statsTick, $$stats.tick);
+                setTimeout($f_displayTick, +document.getElementById("tick").value);
             }
-            $f_setupInterval(500);
-            setTimeout($f_statsTick, $$stats.tick);
+            setTimeout($f_displayTick, 100);
+
+            function $f_statsTick() {
+                var mps = 0;
+                if ($$flags.isOpen) {
+                    var prevCount = $$stats.countHistory[$$stats.countHistoryPosition];
+                    $$stats.countHistory[$$stats.countHistoryPosition] = $$stats.count;
+                    $$stats.countHistorySum += $$stats.count;
+                    if ($$stats.countHistoryLength < $$stats.countHistory.length) {
+                        $$stats.countHistoryLength++;
+                    } else {
+                        $$stats.countHistorySum -= prevCount;
+                    }
+                    $$stats.countHistoryPosition = ($$stats.countHistoryPosition + 1) % $$stats.countHistory.length;
+                    $$stats.count = 0;
+                    mps = Math.round(10 * $$stats.countHistorySum / $$stats.countHistoryLength) / 10;
+                } else {
+                    $$stats.countHistorySum = 0;
+                    $$stats.countHistoryLength = 0;
+                }
+                var now = Date.now();
+                var newTimeout = 1000;
+                if (now - $$stats.prevTickDate > 1000) {
+                    newTimeout = 2000 - now + $$stats.prevTickDate
+                    if (newTimeout < 0) newTimeout = 1;
+                }
+                $$stats.prevTickDate = now;
+                $$el.messageCount.innerText = $$flags.messageCount;
+                $$el.mps.innerText = mps;
+                setTimeout($f_statsTick, newTimeout);
+            }
+            setTimeout($f_statsTick, 1000);
 
             function $$evalFilter(msg) {
                 if ($$flags.filterEnabled) {
@@ -147,12 +165,14 @@
                 }
                 $$ws.onclose = function (evt) {
                     $$ws = null;
+                    $$flags.isOpen = false;
                     $f_toggleButton($$el.open, true);
                     $f_toggleButton($$el.close, false);
                 }
                 $$ws.onmessage = function (evt) {
+                    $$flags.isOpen = true;
                     $$flags.messageCount++;
-                    $$stats.count[$$stats.index]++;
+                    $$stats.count++;
                     if (!$$flags.intervalMsgFreezed) {
                         $$flags.rawMessage = evt.data;
                         var msg = $$evalFilter($$flags.rawMessage);
@@ -224,10 +244,6 @@
             };
             document.getElementById("eval").onclick = function (evt) {
                 $$el.output.value = $$flags.message = $$evalFilter($$flags.rawMessage || '""');
-            };
-            document.getElementById("tick").onchange = function (evt) {
-                $f_setupInterval(+this.value)
-                return false;
             };
             document.getElementById("stack").onclick = function (evt) {
                 $$flags.stackingEnabled = !$$flags.stackingEnabled;
