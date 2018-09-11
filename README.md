@@ -5,7 +5,7 @@
 * download and run [binary](https://github.com/Effyis/kafka2websocket/releases) for your OS (`config.yaml` should be in the same directory)
 
 ### Simple setup
-![Simple K2WS](https://raw.githubusercontent.com/Effyis/kafka2websocket/master/docs/imgs/k2ws%20simple.png)
+![Simple K2WS](https://raw.githubusercontent.com/Effyis/kafka2websocket/master/docs/imgs/k2ws-simple.png)
 
 ```yaml
 schema.version: "1.0"
@@ -19,7 +19,7 @@ kafka.to.websocket:
 ```
 
 ### Complex setup
-![Complex K2WS](https://raw.githubusercontent.com/Effyis/kafka2websocket/master/docs/imgs/k2ws%20complex.png)
+![Complex K2WS](https://raw.githubusercontent.com/Effyis/kafka2websocket/master/docs/imgs/k2ws-complex.png)
 ```yaml
 schema.version: "1.0"
 # domain certificate files are located in certs folder
@@ -72,6 +72,26 @@ Property                                |Required | Range           |       Defa
 When `topics`, `kafka.consumer.config/group.id` and/or `kafka.consumer.config/auto.offset.reset` are omitted in configuration, they are expected to be set by client as a query parameters in websocket URL. For example if websocket URL is `ws://localhost:8888/` client can set these by making request to `ws://localhost:8888/?topics=topicA,topicB&group.id=mygroup&auto.offset.reset=earliest`. Note that this only works for parameters that are omitted from configuration thus setting them otherwise will have no effect.
 
 You can serve more then one Kafka config entry on the same port as long as they all have unique websocket and test endpoints.
+
+### Test page
+Every `kafka.to.websocket` entry will have it's own test page. By default this page will be accessible on `/test` path or on `endpoint.test` path if `endpoint.test` is defined in entry's configuration.
+
+Test page can open up websocket and start consuming Kafka topic(s). It will display message for 1 second by default and then it will display another message that came at the current time, meaning that some messages will not be shown when message rate is high (higher then 1 message per second). Even though messages are not displayed, they will still be consumed and processed by the page. Test page has handy filtering capability that makes it possible to execute small JavaScript code for each message in which you can decide what you want to do with the message and want you want to display.
+
+![K2WS test page](https://raw.githubusercontent.com/Effyis/kafka2websocket/master/docs/imgs/k2ws-testpage.png)
+
+* `Open` - Opens up websocket connection (kafka topic(s) consumption will start).
+* `Close` - Closes websocket connection (kafka topic(s) consumption will stop).
+* `Setup` - Toggle button, shows or hides connection setup options.If any of `topics`, `group.id` or `auto.offset.reset` are omitted from configuration entry, client will have to set them up here before opening websocket connection.
+* `Auto-close` - Defines how many messages test page should receive before it automatically closes up websocket connection.
+* `Stack` - Toggle button, when active it will make test page stack incoming messages into JSON array.
+* `5511 / 9mps` - Shows total number of received messages and current message consumption rate, it will reset when it's clicked.
+* `1 sec` - Configures how long should a message be displayed.
+* `Filter` - Toggle button, when active it will show filter editor where you can configure JavaScript code to execute for each message.
+* `Freeze` - Toggle button, when active it will freeze current message, consumption will still run in the background.
+* `Evaluate` - It will evaluate current JavaScript filter code on the latest message (or froze message if freeze is active). Only shows up when filter is active.
+
+Incoming (or filtered) messages are displayed on the bottom left text area. Filter editor is displayed on the bottom right when filtering is activated.
 
 ## Updating static HTTP files
 Add/remove/modify files in `k2ws/static` directory and using [esc](https://github.com/mjibson/esc) tool from inside `k2ws` directory run `esc -o static.go static`. This will re-create `static.go`. 
