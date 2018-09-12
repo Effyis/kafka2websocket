@@ -48,6 +48,7 @@
                 filterBox: document.getElementById("filterbox"),
                 filterEditor: undefined,
                 stacked: document.getElementById("stacked"),
+                recorded: document.getElementById("recorded"),
                 closeAfterCount: document.getElementById("closeaftercount"),
             }
             $$el.filterEditor = CodeMirror(function(elt) {
@@ -78,6 +79,70 @@
                 countHistoryLength: 0,
                 countHistorySum: 0,
             }
+            var $$recording = (function () {
+                var rec = {
+                    baseFile: '',
+                    chunkData: [],
+                    chunkID: 0,
+                    chunkSize: 0,
+                    identJSON: 0,
+                };
+                rec.download = function(force) {
+                    if (force && rec.chunkSize > 0 || rec.chunkSize > 209715200) { // 200MB
+                        var name = rec.baseFile + (rec.chunkID === 0 ? '' : rec.chunkID) + '.txt';
+                        var file = new File(rec.chunkData, name, { type: "text/plain" });
+                        let u = URL.createObjectURL(file);
+
+                        let link = document.createElement('a')
+                        let click = new MouseEvent('click')
+                        link.href = u
+                        link.download = name
+                        link.dispatchEvent(click)
+
+                        URL.revokeObjectURL(u);
+
+                        rec.chunkID++;
+                        rec.chunkData = [];
+                        rec.chunkSize = 0;
+                    }
+                }
+                rec.add = function(data) {
+                    if (rec._recording) {
+                        var datatype = typeof(data);
+                        var strdata;
+                        if (datatype === 'object') {
+                            strdata = JSON.stringify(data, undefined, rec.identJSON);
+                        } else if (datatype === 'string') {
+                            try { strdata = JSON.stringify(JSON.parse(data), undefined, rec.identJSON) }
+                            catch (e) { strdata = data; }
+                        } else {
+                            strdata = data;
+                        }
+                        strdata += '\n';
+                        rec.chunkData.push(strdata);
+                        rec.chunkSize += strdata.length;
+                        rec.download(false);
+                    }
+                }
+                Object.defineProperty(rec, "recording", {
+                    get: function() {
+                        return !!rec._recording;
+                    },
+                    set: function(val) {
+                        rec._recording = val;
+                        if (rec._recording) {
+                            rec.baseFile = rec.baseFile || "k2ws-dump";
+                        } else {
+                            rec.download(true);
+                            rec.baseFile = '';
+                        }
+                        rec.chunkID = 0;
+                        rec.chunkData = [];
+                        rec.chunkSize = 0;
+                    }
+                })
+                return rec;
+            })();
             // ws handle
             var $$ws;
             // filter global
@@ -96,6 +161,7 @@
                 if (!$$flags.intervalMsgFreezed) {
                     $$el.output.value = msg;
                     $$el.stacked.innerText = $$flags.stackedMessages ? $$flags.stackedMessages : '';
+                    $$el.recorded.innerText = $$recording.recording ? $$recording.chunkData.length : '';
                 }
                 setTimeout($f_displayTick, +document.getElementById("tick").value);
             }
@@ -177,6 +243,7 @@
                         $$flags.rawMessage = evt.data;
                         var msg = $$evalFilter($$flags.rawMessage);
                         if (msg) {
+                            $$recording.add(msg);
                             if ($$flags.stackingEnabled) {
                                 var splitter = ($$flags.message) ? ',' : '';
                                 var isString = false;
@@ -252,6 +319,19 @@
                 $$flags.stackedMessages = 0;
                 return false;
             };
+            document.getElementById("recording").onclick = function (evt) {
+                if (!$$recording.recording) {
+                    var basefilename = prompt("File name:", 'k2ws-' + (new Date()).toISOString().replace(/T.*/,'-') + Date.now().toString().substr(10) + '-dump');
+                    if (!basefilename) return false;
+                    var ident = prompt("JSON ident:", $$recording.identJSON.toString());
+                    if (!ident) return false;
+                    $$recording.baseFile = basefilename;
+                    $$recording.identJSON = +ident || 0;
+                }
+                $$recording.recording = !$$recording.recording;
+                $f_toggleButton(this, $$recording.recording, true);
+                return false;
+            };
             document.getElementById("closeafter").onclick = function (evt) {
                 if (!$$flags.closeAfter) {
                     p = prompt("Stop after receiving this number of messages:", $$flags.closeAfter > 0 ? $$flags.closeAfter : 10);
@@ -298,6 +378,10 @@
             <button class="btn" id="stack" title="Stack messages">
                 Stack
                 <span id="stacked"></span>
+            </button>
+            <button class="btn" id="recording" title="Start recording output">
+                Record
+                <span id="recorded"></span>
             </button>
             
             <div id="kafka" style="display: none; max-width: 400px !important">

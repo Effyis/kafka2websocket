@@ -85,6 +85,7 @@ Test page can open up websocket and start consuming Kafka topic(s). It will disp
 * `Setup` - Toggle button, shows or hides connection setup options.If any of `topics`, `group.id` or `auto.offset.reset` are omitted from configuration entry, client will have to set them up here before opening websocket connection.
 * `Auto-close` - Defines how many messages test page should receive before it automatically closes up websocket connection.
 * `Stack` - Toggle button, when active it will make test page stack incoming messages into JSON array.
+* `Record` - Toggle button, when active it will start recording messages and save them to a file once button is deactivated or if size exceeds 200MB
 * `5511 / 9mps` - Shows total number of received messages and current message consumption rate, it will reset when it's clicked.
 * `1 sec` - Configures how long should a message be displayed.
 * `Filter` - Toggle button, when active it will show filter editor where you can configure JavaScript code to execute for each message.
