@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"regexp"
@@ -53,6 +54,8 @@ func JSONBytefy(msg *kafka.Message, messageType string) ([]byte, error) {
 	var val string
 	if messageType == "json" {
 		val = ",\"value\":" + string(msg.Value) + "}"
+	} else if messageType == "binary" {
+		val = ",\"value\":\"" + base64.StdEncoding.EncodeToString(msg.Value) + "\"}"
 	} else {
 		if jsonVal, err := json.Marshal(string(msg.Value)); err == nil {
 			val = ",\"value\":" + string(jsonVal) + "}"

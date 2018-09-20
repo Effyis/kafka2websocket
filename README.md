@@ -66,8 +66,8 @@ Property                                |Required | Range           |       Defa
 `endpoint.prefix`                       |         |                 |               | Prefix of the websocket and test paths. By default is empty.
 `endpoint.websocket`                    |         |                 |               | Path to websocket URL. By default it's empty.
 `endpoint.test`                         |         |                 |          test | Path to test page URL.
-`message.details`                       |         |                 |       `false` | Include key, headers, topic partition, timesteamp into websocket message payload. Message will be in JSON format.
-`message.type`                          |         |   json, text    |          json | Type of Kafka messages. This is only important when `message.details` option is set to `true` because it will affect creation of websocket message payload.
+`message.details`                       |         |                 |       `false` | Include key, headers, topic partition, timestamp into websocket message payload. Message will be in JSON format. Field `value` will hold the original message, whose representation depends on `message.type` property.
+`message.type`                          |         | json, text, binary |          json | Type of Kafka messages. This is only important when `message.details` option is set to `true` because it will affect creation of websocket message payload. `binary` messages will be encoded into base64 string, `text` into JSON string and `json` will keep original form.
 
 When `topics`, `kafka.consumer.config/group.id` and/or `kafka.consumer.config/auto.offset.reset` are omitted in configuration, they are expected to be set by client as a query parameters in websocket URL. For example if websocket URL is `ws://localhost:8888/` client can set these by making request to `ws://localhost:8888/?topics=topicA,topicB&group.id=mygroup&auto.offset.reset=earliest`. Note that this only works for parameters that are omitted from configuration thus setting them otherwise will have no effect.
 

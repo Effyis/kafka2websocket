@@ -191,6 +191,10 @@ func (k2ws *K2WS) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		defer consumer.Unsubscribe()
 
 		log.Printf("Websocket opened %s\n", r.Host)
+		websocketMessageType := websocket.TextMessage
+		if kcfg.MessageType == "binary" {
+			websocketMessageType = websocket.BinaryMessage
+		}
 		running := true
 		// Keep reading and sending messages
 		for running {
@@ -213,7 +217,7 @@ func (k2ws *K2WS) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 							err = wscon.WriteMessage(websocket.TextMessage, e.Value)
 						}
 					} else {
-						err = wscon.WriteMessage(websocket.TextMessage, e.Value)
+						err = wscon.WriteMessage(websocketMessageType, e.Value)
 					}
 					if err != nil {
 						log.Printf("WebSocket write error: %v (%v)\n", err, e)

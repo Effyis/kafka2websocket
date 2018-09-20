@@ -103,7 +103,9 @@ func ReadK2WS(filename string) []*K2WS {
 		if _, exists := k2ws.TestUIs[wsPath]; exists {
 			panic(fmt.Sprintf("websocket path [%s] already defined as test path", wsPath))
 		}
-		if kwsc.MessageType != "json" && kwsc.MessageType != "text" {
+		if kwsc.MessageType != "json" &&
+			kwsc.MessageType != "text" &&
+			kwsc.MessageType != "binary" {
 			panic(fmt.Sprintf("invalid message.type [%s]", kwsc.MessageType))
 		}
 		k2ws.TestUIs[testPath] = &wsPath
