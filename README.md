@@ -61,7 +61,7 @@ Property                                |Required | Range           |       Defa
 `kafka.consumer.config/metadata.broker.list` |   yes   |                 |               | Initial list of brokers as a CSV list of broker host or host:port.
 `kafka.consumer.config/group.id`             |         |                 |               | Client group id string. All clients sharing the same group.id belong to the same group. If omitted group id will be expected to be passed by client.
 `kafka.default.topic.config/auto.offset.reset` |         | smallest, earliest, beginning, largest, latest, end, error |  | Action to take when there is no initial offset in offset store or the desired offset is out of range. If omitted it will be expected to be passed by client. 
-`topics`                                |         |                 |               | List of Kafka topics that will be served via websocket. If omitted topic list will be expected to be passed by client.
+`kafka.topics`                                |         |                 |               | List of Kafka topics that will be served via websocket. If omitted topic list will be expected to be passed by client.
 `address`                               |   yes   |                 |               | Host (or IP) and port pair where socket will be served from. Host (IP) is optional. Example `localhost:8888` or `:8888`.
 `endpoint.prefix`                       |         |                 |               | Prefix of the websocket and test paths. By default is empty.
 `endpoint.websocket`                    |         |                 |               | Path to websocket URL. By default it's empty.
