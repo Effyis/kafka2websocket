@@ -225,6 +225,7 @@
                 $$flags.closeAfterCount = 0;
                 $f_toggleButton($$el.open, false);
                 $$ws = new WebSocket($f_wsURL());
+                $$ws.binaryType = 'arraybuffer';
                 $$ws.onopen = function (evt) {
                     $f_toggleButton($$el.open, false);
                     $f_toggleButton($$el.close, true);
@@ -240,7 +241,7 @@
                     $$flags.messageCount++;
                     $$stats.count++;
                     if (!$$flags.intervalMsgFreezed) {
-                        $$flags.rawMessage = evt.data;
+                        $$flags.rawMessage = (evt.data instanceof ArrayBuffer) ? `[${(new Uint8Array(evt.data)).join(',')}]` : evt.data;
                         var msg = $$evalFilter($$flags.rawMessage);
                         if (msg) {
                             $$recording.add(msg);
