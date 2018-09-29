@@ -1,7 +1,7 @@
 **Apache Kafka to WebSocket** creates web-socket server that serves data from Apache Kafka topic(s). This is also great tool for inspecting Kafka topic(s) using built-in browser based consumer.
 
 ## How to use
-* create your `config.yaml` file
+* create your `config.yaml` file, you can call `k2ws -init` to begin with
 * download and run [binary](https://github.com/Effyis/kafka2websocket/releases) for your OS (`config.yaml` should be in the same directory)
 
 ### Simple setup

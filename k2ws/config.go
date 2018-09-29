@@ -12,6 +12,28 @@ import (
 	yaml "gopkg.in/yaml.v2"
 )
 
+const initConfig = `schema.version: "1.0"
+# tls.cert.file: my-domain.crt
+# tls.key.file: my-domain.key
+kafka.to.websocket:
+  - kafka.consumer.config:
+      # https://github.com/edenhill/librdkafka/blob/master/CONFIGURATION.md#global-configuration-properties
+      metadata.broker.list: localhost:9092
+      enable.auto.commit: false
+      group.id: my-kafka-group
+    kafka.default.topic.config:
+      # https://github.com/edenhill/librdkafka/blob/master/CONFIGURATION.md#topic-configuration-properties
+      auto.offset.reset: latest
+    kafka.topics:
+      - my.kafka.topic
+    address: :9999
+    # message.details: false
+    # message.type: json
+    # endpoint.prefix: ""
+    # endpoint.websocket: ws
+    # endpoint.test: test
+`
+
 // ConfigK2WS Kafka to websocket YAML
 type ConfigK2WS struct {
 	KafkaConsumerConfig     kafka.ConfigMap `yaml:"kafka.consumer.config"`
