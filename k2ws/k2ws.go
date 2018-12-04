@@ -227,6 +227,10 @@ func (k2ws *K2WS) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 					// log.Printf("%% Reached %v\n", e)
 				case kafka.Error:
 					log.Printf("%% Error: %v\n", e)
+					err = wscon.Close()
+					if err != nil {
+						log.Printf("Error while closing WebSocket: %v\n", e)
+					}
 					running = false
 				}
 			}
