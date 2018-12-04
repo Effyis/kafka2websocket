@@ -198,9 +198,22 @@
             }
             setTimeout($f_statsTick, 1000);
 
+            function $$isJSON(msg) {
+                if (msg.length === 0 || msg[0] !== '{' && msg[0] !== '[') return false;
+                try {
+                    JSON.parse(str);
+                } catch (e) {
+                    return false;
+                }
+                return true;
+            }
+
             function $$evalFilter(msg) {
                 if ($$flags.filterEnabled) {
                     try {
+                        if (!$$isJSON(msg) && !/^[0-9]+(\.[0-9]*)?$/.test(msg)) {
+                            msg = '`' + msg.replace(/`/g, '\\`') + '`';
+                        }
                         msg = eval('var m=' + msg + ';\n' + $$el.filterEditor.getValue());
                         if (msg && typeof (msg) === 'object') {
                             msg = JSON.stringify(msg, null, 4);
@@ -255,7 +268,7 @@
                                 } catch(e) {
                                     isString = true;
                                 }
-                                $$flags.message += splitter + (isString ? '"' + msg + '"' : msg);
+                                $$flags.message += splitter + (isString ? '"' + msg.replace(/"/g, '\\"') + '"' : msg);
                                 $$flags.stackedMessages++;
                             } else {
                                 $$flags.message = msg;
