@@ -4,7 +4,7 @@ FROM golang:1.10-stretch
 RUN cd /tmp && \
     git clone https://github.com/edenhill/librdkafka.git && \
     cd /tmp/librdkafka && \
-    git checkout 7478b5e && \
+    git checkout 849c066 && \
     ./configure && \
     make && \
     make install
