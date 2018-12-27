@@ -9,12 +9,17 @@ import (
 	"os/signal"
 )
 
+const productVersion = "1.1"
+
 func main() {
 	configFile := flag.String("config", "config.yaml", "Config file location")
 	initiate := flag.Bool("init", false, "Create initial config file")
+	version := flag.Bool("v", false, "Print product version")
 	flag.Parse()
 
-	if *initiate {
+	if *version {
+		fmt.Printf("Kafka to WebSocket %s\n", productVersion)
+	} else if *initiate {
 		if _, err := os.Stat(*configFile); os.IsNotExist(err) {
 			if err := ioutil.WriteFile(*configFile, []byte(initConfig), 0644); err == nil {
 				fmt.Printf("Config file %s successfully created.\n", *configFile)
