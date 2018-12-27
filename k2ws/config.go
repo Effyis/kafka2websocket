@@ -69,10 +69,18 @@ func ReadK2WS(filename string) []*K2WS {
 	}
 	certFile := ""
 	keyFile := ""
-	if _, err := os.Stat(config.TLSCertFile); err == nil {
-		if _, err := os.Stat(config.TLSKeyFile); err == nil {
-			keyFile = config.TLSKeyFile
-			certFile = config.TLSCertFile
+	if config.TLSCertFile != "" && config.TLSKeyFile == "" || config.TLSCertFile == "" && config.TLSKeyFile != "" {
+		panic(fmt.Sprintf("Both certificate and key file must be defined"))
+	} else if config.TLSCertFile != "" {
+		if _, err := os.Stat(config.TLSCertFile); err == nil {
+			if _, err := os.Stat(config.TLSKeyFile); err == nil {
+				keyFile = config.TLSKeyFile
+				certFile = config.TLSCertFile
+			} else {
+				panic(fmt.Sprintf("key file %s does not exist", config.TLSKeyFile))
+			}
+		} else {
+			panic(fmt.Sprintf("certificate file %s does not exist", config.TLSKeyFile))
 		}
 	}
 	k2wsMap := make(map[string]*K2WS)
