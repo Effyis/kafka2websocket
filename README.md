@@ -134,10 +134,10 @@ docker run -d --name=k2ws --net=host -v _PATH_TO_CONFIG_:/config.yaml k2ws
 * add `c:\cygwin64\` to PATH
 * open your project directory in command prompt
 * get `nuget` from https://dist.nuget.org/win-x86-commandline/latest/nuget.exe
-* run `nuget install librdkafka.redist -Version 0.11.4` ( this is currently the latest version )
-* this will download `rdkafka` into new `librdkafka.redist.0.11.4` directory
-* copy `.\librdkafka.redist.0.11.4\build\native\include\` into `c:\cygwin64\usr\include\`
-* copy `.\librdkafka.redist.0.11.4\build\native\lib\win7\x64\win7-x64-Release\v120\librdkafka.lib` into `c:\cygwin64\lib\librdkafka.a` (notice `.lib` is renamed to `.a`)
+* run `nuget install librdkafka.redist -Version 0.11.6` ( this is currently the latest version )
+* this will download `rdkafka` into new `librdkafka.redist.0.11.6` directory
+* copy `.\librdkafka.redist.0.11.6\build\native\include\` into `c:\cygwin64\usr\include\`
+* copy `.\librdkafka.redist.0.11.6\build\native\lib\win7\x64\win7-x64-Release\v120\librdkafka.lib` into `c:\cygwin64\lib\librdkafka.a` (notice `.lib` is renamed to `.a`)
 * create file `rdkafka.pc` in the project's root directory with following content:
 ```
 prefix=c:/
@@ -146,11 +146,20 @@ includedir=c:/cygwin64/usr/include
 
 Name: librdkafka
 Description: The Apache Kafka C/C++ library
-Version: 0.11.4
+Version: 0.11.6
 Cflags: -I${includedir}
 Libs: -L${libdir} -lrdkafka
 Libs.private: -lssl -lcrypto -lcrypto -lz -ldl -lpthread -lrt
 ```
 * run `set CC=x86_64-w64-mingw32-gcc` (this will allow `cgo` to use `x86_64-w64-mingw32-gcc` instead of `gcc` - you can make sure it worked with `go env CC`)
 * run `go build`, that will create executable
-* deliver `librdkafka.dll`, `msvcr120.dll` and `zlib.dll` from `.\librdkafka.redist.0.11.4\runtimes\win7-x64\native\` alongside with executable
+* deliver `librdkafka.dll`, `msvcr120.dll` and `zlib.dll` from `.\librdkafka.redist.0.11.6\runtimes\win7-x64\native\` alongside with executable
+
+### Build for MacOS
+* install `openssl` with `brew install openssl`
+* run
+```
+CFLAGS="-I/usr/local/opt/openssl/include"
+LDFLAGS="-L/usr/local/opt/openssl/lib"
+go build -tags static
+```
