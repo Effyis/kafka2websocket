@@ -201,7 +201,7 @@
             function $$isJSON(msg) {
                 if (msg.length === 0 || msg[0] !== '{' && msg[0] !== '[') return false;
                 try {
-                    JSON.parse(str);
+                    JSON.parse(msg);
                 } catch (e) {
                     return false;
                 }
