@@ -26,8 +26,8 @@ type jsonMessage struct {
 }
 
 type jsonHeader struct {
-	Key   *string `json:"key"`
-	Value string  `json:"value"`
+	Key   string `json:"key"`
+	Value string `json:"value"`
 }
 
 var rexJSONVal = regexp.MustCompile(`}$`)
@@ -47,7 +47,7 @@ func JSONBytefy(msg *kafka.Message, messageType string) ([]byte, error) {
 	}
 
 	for _, header := range msg.Headers {
-		jsonMsg.Headers = append(jsonMsg.Headers, jsonHeader{Key: &header.Key, Value: string(header.Value)})
+		jsonMsg.Headers = append(jsonMsg.Headers, jsonHeader{Key: header.Key, Value: string(header.Value)})
 	}
 
 	b, err := json.Marshal(jsonMsg)
