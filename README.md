@@ -106,7 +106,7 @@ You can build it statically with `go build -tags static`. Check out [confluentin
 
 ### Build with Docker (Linux)
 ```sh
-docker build -f Dockerfile.build -t k2ws-build .
+docker build -f Dockerfile.build --no-cache -t k2ws-build . && \
 docker run --rm -v $PWD/build:/build k2ws-build
 ```
 

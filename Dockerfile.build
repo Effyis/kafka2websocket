@@ -1,10 +1,10 @@
 FROM golang:1.10-stretch
 
-# compile & install librdkafka
+# compile & install librdkafka (1.1.0)
 RUN cd /tmp && \
     git clone https://github.com/edenhill/librdkafka.git && \
     cd /tmp/librdkafka && \
-    git checkout 849c066 && \
+    git checkout 6160ec2 && \
     ./configure && \
     make && \
     make install
