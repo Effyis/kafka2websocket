@@ -45,6 +45,7 @@ type ConfigK2WS struct {
 	EndpointWS              string          `yaml:"endpoint.websocket"`
 	MessageDetails          bool            `yaml:"message.details"`
 	MessageType             string          `yaml:"message.type"`
+	Compression             bool            `yaml:"compression"`
 }
 
 // Config YAML config file
@@ -145,6 +146,7 @@ func ReadK2WS(filename string) []*K2WS {
 			KafkaTopics:             kwsc.KafkaTopics,
 			MessageDetails:          kwsc.MessageDetails,
 			MessageType:             kwsc.MessageType,
+			Compression:             kwsc.Compression,
 		}
 	}
 	k2wss := make([]*K2WS, len(k2wsMap))

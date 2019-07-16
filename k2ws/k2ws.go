@@ -29,6 +29,7 @@ type K2WSKafka struct {
 	KafkaTopics             []string
 	MessageDetails          bool
 	MessageType             string
+	Compression             bool
 }
 
 type templateInfo struct {
@@ -112,13 +113,19 @@ func (k2ws *K2WS) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	} else if kcfg, exists := k2ws.WebSockets[r.URL.Path]; exists {
 		// Upgrade to websocket connection
-		upgrader := websocket.Upgrader{}
+		upgrader := websocket.Upgrader{
+			EnableCompression: kcfg.Compression,
+		}
 		wscon, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
 			log.Printf("Websocket http upgrade failed: %v\n", err)
 			return
 		}
 		defer wscon.Close()
+
+		if kcfg.Compression {
+			wscon.EnableWriteCompression(true)
+		}
 
 		// Read kafka params from query string
 		query := r.URL.Query()
