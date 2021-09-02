@@ -30,6 +30,7 @@ type K2WSKafka struct {
 	MessageDetails          bool
 	MessageType             string
 	Compression             bool
+	CheckOrigin             string
 }
 
 type templateInfo struct {
@@ -115,6 +116,14 @@ func (k2ws *K2WS) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		// Upgrade to websocket connection
 		upgrader := websocket.Upgrader{
 			EnableCompression: kcfg.Compression,
+		}
+		log.Printf("Websocket CheckOrigin set to : %s\n", kcfg.CheckOrigin)
+		if kcfg.CheckOrigin == "danger" {
+		    // Danger zone: overriding the same-origin policy
+		    // See: https://en.wikipedia.org/wiki/Same-origin_policy
+		    // See: https://pkg.go.dev/github.com/gorilla/websocket#Upgrader
+		    // See: https://betterprogramming.pub/implementing-websocket-with-go-and-react-b3ee976770ab
+		    upgrader.CheckOrigin = func(r *http.Request) bool { return true }
 		}
 		wscon, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
