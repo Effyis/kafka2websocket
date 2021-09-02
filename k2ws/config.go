@@ -46,6 +46,7 @@ type ConfigK2WS struct {
 	MessageDetails          bool            `yaml:"message.details"`
 	MessageType             string          `yaml:"message.type"`
 	Compression             bool            `yaml:"compression"`
+	CheckOrigin             string          `yaml:"checkorigin"`
 }
 
 // Config YAML config file
@@ -139,6 +140,13 @@ func ReadK2WS(filename string) []*K2WS {
 			kwsc.MessageType != "binary" {
 			panic(fmt.Sprintf("invalid message.type [%s]", kwsc.MessageType))
 		}
+        if kwsc.CheckOrigin == "" {
+            kwsc.CheckOrigin = "hard"
+        }
+		if kwsc.CheckOrigin != "hard" &&
+			kwsc.CheckOrigin != "danger" {
+			panic(fmt.Sprintf("invalid checkorigin [%s]", kwsc.CheckOrigin))
+		}
 		k2ws.TestUIs[testPath] = &wsPath
 		k2ws.WebSockets[wsPath] = &K2WSKafka{
 			KafkaConsumerConfig:     kwsc.KafkaConsumerConfig,
@@ -147,6 +155,7 @@ func ReadK2WS(filename string) []*K2WS {
 			MessageDetails:          kwsc.MessageDetails,
 			MessageType:             kwsc.MessageType,
 			Compression:             kwsc.Compression,
+			CheckOrigin:             kwsc.CheckOrigin,
 		}
 	}
 	k2wss := make([]*K2WS, len(k2wsMap))
